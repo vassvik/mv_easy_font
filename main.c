@@ -62,9 +62,16 @@ typedef struct Font_String {
 
     char str[MAX_STRING_LEN];
     int caret;
+    int ctr;
 } Font_String;
 
-Font_String font_string_console = {0};
+typedef struct vec2 {
+    float x, y;
+} vec2;
+
+typedef struct Color {
+    float R, G, B;
+} Color;
 
 void font_print_string(char *str, Font *font);
 
@@ -72,18 +79,188 @@ void font_read(char *filename, Font *font);
 void font_clean(Font *font);
 void font_setup_texture(Font *font);
 void font_setup_text(Font_String *font_string);
-int font_update_text(Font *font, Font_String *font_string);
-void font_draw(Font *font, Font_String *font_string, int ctr, float x, float y, GLuint program, float Rb, float Gb, float Bb, float Rf, float Gf, float Bf, float size);
+void font_update_text(Font *font, Font_String *font_string);
+void font_draw(Font *font, Font_String *font_string, vec2 offset, Color bgColor, Color fgColor, float size);
+
+
+GLuint program_text;
+
+typedef struct LinkedListLine {
+    char str[512];
+    struct LinkedListLine *previous;
+    struct LinkedListLine *next;
+} LinkedListLine;
+
+LinkedListLine *head_vertex_shader;
+LinkedListLine *head_fragment_shader;
+
+LinkedListLine *current_vertex_shader;
+LinkedListLine *current_fragment_shader;
+
+int current_pos_vertex_shader = 0;
+int current_pos_fragment_shader = 0;
+
+void LinkedListLine_create()
+{
+    {
+        char *shader_vertex = readFile("vertex_shader.vs");
+
+        LinkedListLine *ptr = NULL;
+        
+        // http://stackoverflow.com/a/17983619
+        char * curLine = shader_vertex;
+        while(curLine)
+        {
+            char * nextLine = strchr(curLine, '\n');
+            if (nextLine) *nextLine = '\0';  // temporarily terminate the current line
+            // printf("curLine=[%s]\n", curLine);
+
+            if (ptr == NULL) {
+                ptr = malloc(sizeof(LinkedListLine));
+                ptr->previous = NULL;
+                ptr->next = NULL;
+                head_vertex_shader = ptr;
+                current_vertex_shader = ptr;
+            } else {
+                ptr->next = malloc(sizeof(LinkedListLine));
+                ptr->next->previous = ptr;
+                ptr->next->next = NULL;
+                ptr = ptr->next;
+            }
+            sprintf(ptr->str, "%s", curLine);
+
+            if (nextLine) *nextLine = '\n';  // then restore newline-char, just to be tidy    
+            curLine = nextLine ? (nextLine+1) : NULL;
+        }
+
+        // print the linked list of lines, to make sure it's correct
+        ptr = head_vertex_shader;
+        int i = 0;
+        while (ptr != NULL) {
+            printf("%4d: %s\n", i, ptr->str);
+            ptr = ptr->next;
+            i++;
+        }
+
+        free(shader_vertex);
+    }
+
+    {
+        char *shader_fragment = readFile("fragment_shader.fs");
+
+        LinkedListLine *ptr = NULL;
+        
+        // http://stackoverflow.com/a/17983619
+        char * curLine = shader_fragment;
+        while(curLine)
+        {
+            char * nextLine = strchr(curLine, '\n');
+            if (nextLine) *nextLine = '\0';  // temporarily terminate the current line
+            // printf("curLine=[%s]\n", curLine);
+
+            if (ptr == NULL) {
+                ptr = malloc(sizeof(LinkedListLine));
+                ptr->previous = NULL;
+                ptr->next = NULL;
+                head_fragment_shader = ptr;
+                current_fragment_shader = ptr;
+            } else {
+                ptr->next = malloc(sizeof(LinkedListLine));
+                ptr->next->previous = ptr;
+                ptr->next->next = NULL;
+                ptr = ptr->next;
+            }
+            sprintf(ptr->str, "%s", curLine);
+
+            if (nextLine) *nextLine = '\n';  // then restore newline-char, just to be tidy    
+            curLine = nextLine ? (nextLine+1) : NULL;
+        }
+
+        // print the linked list of lines, to make sure it's correct
+        ptr = head_fragment_shader;
+        int i = 0;
+        while (ptr != NULL) {
+            printf("%4d: %s\n", i, ptr->str);
+            ptr = ptr->next;
+            i++;
+        }
+
+        free(shader_fragment);
+    }
+}
+
+void LinkedListLine_delete()
+{
+    LinkedListLine *ptr = head_vertex_shader;
+    while (ptr) {
+        LinkedListLine *old = ptr;
+        ptr = ptr->next;
+        free(old);
+    }
+    head_vertex_shader = NULL;
+
+    ptr = head_fragment_shader;
+    while (ptr) {
+        LinkedListLine *old = ptr;
+        ptr = ptr->next;
+        free(old);
+    }
+    head_fragment_shader = NULL;
+}
+
+void LinkedListLine_update_text(LinkedListLine *head, Font *font, Font_String *font_string)
+{
+    static float text_glyph_data[3*MAX_STRING_LEN];
+
+    float X = 0.0;
+    float Y = 0.0;
+
+    int ctr = 0;
+    float height = font->height;
+    float width_padded = font->width_padded;
+
+    int *glyph_offsets = font->glyph_offsets;
+    int *glyph_widths = font->glyph_widths;
+
+    LinkedListLine *ptr = head;
+    while (ptr != NULL) {
+        int len = strlen(ptr->str);
+        for (int i = 0; i < len; i++) {
+            int code_base = ptr->str[i]-32;
+
+            text_glyph_data[3*ctr+0] = X;
+            text_glyph_data[3*ctr+1] = Y;
+            text_glyph_data[3*ctr+2] = code_base;
+
+            X += glyph_widths[code_base];
+            ctr++;
+        }
+
+        text_glyph_data[3*ctr+0] = X;
+        text_glyph_data[3*ctr+1] = Y;
+        text_glyph_data[3*ctr+2] = 0;
+
+        X += glyph_widths[0];
+        ctr++;
+
+        X = 0.0;
+        Y -= height;
+        ptr = ptr->next;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, font_string->vbo_code_instances);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, 4*3*ctr, text_glyph_data);
+
+    font_string->ctr = ctr;
+}
 
 int main() 
 {
+    LinkedListLine_create();
+
     init_GL();
 
-    GLuint program_ID = LoadShaders( "vertex_shader.vs", "fragment_shader.fs" );
-
-
-    // TODO: Add modifying of string using keyboard
-    // TODO: Change to using instancing?
+    program_text = LoadShaders( "vertex_shader.vs", "fragment_shader.fs" );
 
     Font font = {0};
     font_read("easy_font_raw.png", &font);
@@ -92,21 +269,15 @@ int main()
     Font_String font_string = {0};
     font_setup_text(&font_string);
 
-
     double t1 = glfwGetTime();
     double avg_dt = 1.0/60;
     double alpha = 0.01;
-    int ctr = 0;;
 
-    ctr = font_update_text(&font, &font_string);
-    
-    font_setup_text(&font_string_console);
-    sprintf(font_string_console.str, "> ");
-    font_string_console.caret = 2;
-    int ctr2 = font_update_text(&font, &font_string_console);
-   
-    unsigned char *shader = readFile("fragment_shader.fs");
-    unsigned char *shader2 = readFile("vertex_shader.vs");
+    Color fgColor = {248/255.0, 248/255.0, 242/225.0};
+    Color bgColor = {68/255.0, 71/255.0, 90/225.0};
+
+    vec2 offset_left = {-0.995, 0.95};
+    vec2 offset_right = {-0.1, 0.95};
 
     while ( !glfwWindowShouldClose(window)) { 
         // calculate fps
@@ -116,48 +287,17 @@ int main()
         t1 = t2;
         
 
-        // upload string
-        // create string
-        
-        // drawing
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        int yy = 0;
-        int ii = 0;
-        int hh = font.height;
+        LinkedListLine_update_text(head_fragment_shader, &font, &font_string);
+        font_draw(&font, &font_string, offset_left, bgColor, fgColor, 2.0);
 
-        while (yy < resy-10) {
-            int xx = 0;
-            while (xx < resx-10) {
-                int cc = 32 + 96*rng();
-                int ww = font.glyph_widths[cc-32];
-            
-                font_string.str[ii++] = cc;
-                xx += ww;
-            }
-            font_string.str[ii++] = '\n';
-            yy += hh;
-            //break;
-        }
-        font_string.str[ii] = '\0';
-        
+        LinkedListLine_update_text(head_vertex_shader, &font, &font_string);
+        font_draw(&font, &font_string, offset_right, bgColor, fgColor, 2.0);
 
-        //sprintf(font_string.str, "%d: time frame = %f ms, glyphs = %d", 0, 1000*avg_dt, ctr);
-        //sprintf(font_string.str, " adsasdsad\nasdasd");
-        
-        strcpy(font_string.str, shader);
-        ctr = font_update_text(&font, &font_string);
-        font_draw(&font, &font_string, ctr, -0.995 + 0.2*0, 0.95 - 0.025*0, program_ID, 68/255.0, 71/255.0, 90/225.0, 248/255.0, 248/255.0, 242/225.0, 2.0);
-
-        strcpy(font_string.str, shader2);
-        ctr = font_update_text(&font, &font_string);
-        font_draw(&font, &font_string, ctr, -0.1 + 0.2*0, 0.95 - 0.025*0, program_ID, 68/255.0, 71/255.0, 90/225.0, 248/255.0, 248/255.0, 242/225.0, 2.0);
-
-        //ctr2 = font_update_text(&font, &font_string_console);
-        //font_draw(&font, &font_string_console, ctr2, -0.995 + 0.2*0, 0.925 - 0.025*0, program_ID, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 3.0);
         char str[128];
-        sprintf(str, "ctr = %d, fps = %f\n", ctr, 1.0/avg_dt);
+        sprintf(str, "fps = %f\n", 1.0/avg_dt);
         glfwSetWindowTitle(window, str);
 
         glfwSwapBuffers(window);
@@ -384,7 +524,7 @@ void font_setup_text(Font_String *font_string)
     glBufferData(GL_ARRAY_BUFFER, sizeof(float)*4*MAX_STRING_LEN, NULL, GL_DYNAMIC_DRAW);
 }
 
-int font_update_text(Font *font, Font_String *font_string)
+void font_update_text(Font *font, Font_String *font_string)
 {
     static float text_glyph_data[3*MAX_STRING_LEN];
 
@@ -427,20 +567,36 @@ int font_update_text(Font *font, Font_String *font_string)
     glBindBuffer(GL_ARRAY_BUFFER, font_string->vbo_code_instances);
     glBufferSubData(GL_ARRAY_BUFFER, 0, 4*3*ctr, text_glyph_data);
 
-    return ctr;
+    font_string->ctr = ctr;
 }
 
-void font_draw(Font *font, Font_String *font_string, int ctr, float x, float y, GLuint program, float Rb, float Gb, float Bb, float Rf, float Gf, float Bf, float size) 
+void font_draw(Font *font, Font_String *font_string, vec2 offset, Color bgColor, Color fgColor, float size) 
 {
-    glUseProgram(program);
-    glUniform2f(glGetUniformLocation(program, "resolution"), resx, resy);
-    glUniform1f(glGetUniformLocation(program, "time"), glfwGetTime());
-    glUniform2f(glGetUniformLocation(program, "string_offset"), x, y);
-    glUniform1i(glGetUniformLocation(program, "sampler_font"), 0);
-    glUniform1i(glGetUniformLocation(program, "sampler_meta"), 1);
-    glUniform3f(glGetUniformLocation(program, "bgColor"), Rb, Gb, Bb);
-    glUniform3f(glGetUniformLocation(program, "fgColor"), Rf, Gf, Bf);
-    glUniform2f(glGetUniformLocation(program, "string_size"), size, size);
+    glUseProgram(program_text);
+    glUniform2f(glGetUniformLocation(program_text, "resolution"), resx, resy);
+    glUniform1f(glGetUniformLocation(program_text, "time"), glfwGetTime());
+    glUniform2f(glGetUniformLocation(program_text, "string_offset"), offset.x, offset.y);
+    glUniform1i(glGetUniformLocation(program_text, "sampler_font"), 0);
+    glUniform1i(glGetUniformLocation(program_text, "sampler_meta"), 1);
+    glUniform3f(glGetUniformLocation(program_text, "bgColor"), bgColor.R, bgColor.G, bgColor.B);
+    glUniform3f(glGetUniformLocation(program_text, "fgColor"), fgColor.R, fgColor.G, fgColor.B);
+    glUniform2f(glGetUniformLocation(program_text, "string_size"), size, size);
+
+    int X = 0;
+    int Y = 0;
+
+    for (int i = 0; i < current_pos_vertex_shader; i++) {
+        X += font->glyph_widths[current_vertex_shader->str[i]-32];
+    }
+
+    LinkedListLine *ptr = current_vertex_shader;
+    while (ptr->previous) {
+        ptr = ptr->previous;
+        Y -= font->height;
+    }
+    printf("%d %d\n", X, Y);
+    glUniform2f(glGetUniformLocation(program_text, "caretPosition"), X, Y);
+    
 
     glBindVertexArray(font->vao_ID);
 
@@ -459,7 +615,7 @@ void font_draw(Font *font, Font_String *font_string, int ctr, float x, float y, 
     glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,(void*)0);
     glVertexAttribDivisor(1, 1);
 
-    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, ctr);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, 6, font_string->ctr);
     
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
@@ -527,15 +683,47 @@ void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) 
         glfwSetWindowShouldClose(win, GL_TRUE);
     }
 
-    int caret = font_string_console.caret;
+    int len = strlen(current_vertex_shader->str);
+    int caret = current_pos_vertex_shader;
+    if (caret > len)
+        caret = len;
     if (key >= 32 && key <= 32 + 96 && action) {
-        font_string_console.str[caret] = key;
-        font_string_console.str[caret+1] = '\0';
-        font_string_console.caret++;
+        for (int i = len-1; i >= caret; i--) {
+            current_vertex_shader->str[i+1] = current_vertex_shader->str[i];
+        }
+        current_vertex_shader->str[caret] = key;
+        current_vertex_shader->str[len+1] = '\0';
+        current_pos_vertex_shader = caret+1;
     } else if (key == GLFW_KEY_BACKSPACE && action) {
-        if (caret > 2) {
-            font_string_console.str[caret-1] = '\0';
-            font_string_console.caret--;
+        if (caret > 0) {
+            for (int i = caret-1; i < len-1; i++) {
+                current_vertex_shader->str[i] = current_vertex_shader->str[i+1];
+            }
+            current_vertex_shader->str[len-1] = '\0';
+            current_pos_vertex_shader = caret-1;
+        }
+    } else if (key == GLFW_KEY_DELETE && action) {
+        if (caret < len) {
+            for (int i = caret; i < len-1; i++) {
+                current_vertex_shader->str[i] = current_vertex_shader->str[i+1];
+            }
+            current_vertex_shader->str[len-1] = '\0';
+        }
+    } else if (key == GLFW_KEY_RIGHT && action) {
+        if (caret < len)
+            current_pos_vertex_shader = caret + 1;
+    } else if (key == GLFW_KEY_LEFT && action) {
+        if (caret > 0)
+            current_pos_vertex_shader = caret - 1;
+    } else if (key == GLFW_KEY_UP && action) {
+        if (current_vertex_shader->previous) {
+            current_vertex_shader = current_vertex_shader->previous;
+            //current_pos_vertex_shader = caret;
+        }
+    } else if (key == GLFW_KEY_DOWN && action) {
+        if (current_vertex_shader->next) {
+            current_vertex_shader = current_vertex_shader->next;
+            //current_pos_vertex_shader = caret;
         }
     }
 }

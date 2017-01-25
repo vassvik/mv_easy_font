@@ -10,9 +10,10 @@ uniform sampler2D sampler_font;
 uniform sampler1D sampler_meta;
 
 uniform vec2 resolution;
+uniform vec2 caretPosition;
 
 out vec2 uv;
-out float code;
+out float invert;
 
 void main(){
     float res_meta = textureSize(sampler_meta, 0);
@@ -40,5 +41,11 @@ void main(){
     uv = glyph_pos + vertexPosition*res_glyph;
 
     gl_Position = vec4(p, 0.0, 1.0);
+
+    if (length(instanceGlyph.xy - caretPosition) < 0.01) {
+        invert = 1.0;
+    } else {
+        invert = 0.0;
+    }
 }
 
