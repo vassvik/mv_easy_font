@@ -113,14 +113,14 @@ GLuint program_text;
 
 Color colors[9] = { 
     {248/255.0, 248/255.0, 242/255.0}, // foreground color
-    {249/255.0, 38/255.0, 114/255.0},  // operator
+    {249/255.0,  38/255.0, 114/255.0}, // operator
     {174/255.0, 129/255.0, 255/255.0}, // numeric
     {102/255.0, 217/255.0, 239/255.0}, // function
-    {249/255.0, 38/255.0, 114/255.0},  // keyword
-    {117/255.0, 113/255.0, 94/255.0},  // comment
+    {249/255.0,  38/255.0, 114/255.0}, // keyword
+    {117/255.0, 113/255.0,  94/255.0}, // comment
     {102/255.0, 217/255.0, 239/255.0}, // type
-    {73/255.0, 72/255.0, 62/255.0},    // background color
-    {39/255.0, 40/255.0, 34/255.0}     // clear color
+    { 73/255.0,  72/255.0,  62/255.0}, // background color
+    { 39/255.0,  40/255.0,  34/255.0}  // clear color
 };
 
 int main() 
@@ -140,7 +140,8 @@ int main()
 
     char *fragment_source = readFile("vertex_shader.vs");
 
-    vec2 offset2 = {-1.0 + 4.0*1.0/resx, 1.0 - 4.0*12.0/resy};
+    float scale = 2.0;
+    vec2 offset = {-1.0 + scale*2.0*1.0/resx, 1.0 - scale*2.0*12.0/resy};
 
     while ( !glfwWindowShouldClose(window)) { 
         // calculate fps
@@ -159,7 +160,7 @@ int main()
 
         sprintf(font.str, "%s", fragment_source);
         font_update_text(&font);
-        font_draw(&font, offset2, colors, 2.0);
+        font_draw(&font, offset, colors, scale);
 
         glfwSwapBuffers(window);
     }
