@@ -130,7 +130,7 @@ int main()
     program_text = LoadShaders( "vertex_shader.vs", "fragment_shader.fs" );
 
     Font font = {0};
-    font_read("easy_font_raw.png", &font);
+    font_read("vass_font.png", &font);
     font_print_string("wi asd abd i w", &font); // for testing if texture is loaded correctly
 
 
@@ -218,7 +218,7 @@ void font_print_string(char *str, Font *font)
 void font_read(char *filename, Font *font)
 {
     int x, y, n;
-    unsigned char *data = stbi_load("vass_font.png", &x, &y, &n, 0);
+    unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
     printf("%d %d %d\n", x, y, n);fflush(stdout);
     //return;
 
