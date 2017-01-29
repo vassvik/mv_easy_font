@@ -264,19 +264,36 @@ int main()
     color_string(fragment_source, col); // syntax highlighting
 
     double t1 = glfwGetTime();
-    double avg_dt = 1.0/60;
-    double alpha = 0.01;
 
-    while ( !glfwWindowShouldClose(window)) { 
-        // calculate fps
+    double dt_avg = 0.0;  // first moment
+    double dt_avg2 = 0.0; // second moment
+
+    int frames_to_avg = 1000;
+    int frame_ctr = 0;
+
+    while ( !glfwWindowShouldClose(window)) {
         double t2 = glfwGetTime();
         double dt = t2 - t1;
-        avg_dt = alpha*dt + (1.0 - alpha)*avg_dt;
         t1 = t2;
 
-        char str[128];
-        sprintf(str, "fps = %f\n", 1.0/avg_dt);
-        glfwSetWindowTitle(window, str); 
+        dt_avg += dt;
+        dt_avg2 += dt*dt;
+        frame_ctr++;
+
+        if (frame_ctr == frames_to_avg) {
+            dt_avg /= frames_to_avg;
+            dt_avg2 /= frames_to_avg;
+            double dt_std = sqrt(dt_avg2 - dt_avg*dt_avg);
+
+            char str[64];
+            sprintf(str, "time frame = %.3fms +/- %.3fms, fps = %.1f", 
+                         1000.0*dt_avg, 1000.0*dt_std, 1.0/dt_avg);
+            glfwSetWindowTitle(window, str);
+
+            dt_avg = 0.0;
+            dt_avg2 = 0.0;
+            frame_ctr = 0;
+        }
 
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -298,8 +315,6 @@ int main()
         float offset1[2] = {(float)(0.0 - scale[0]*2.0*width1/res[0]), (float)(0.0        - scale[1]*2.0*height1/res[1])};
         float offset2[2] = {(float)(0.0 + 0.0*scale[0]*2.0*width2/res[0]), (float)(offset1[1] - scale[1]*2.0*height2/res[1])};
         float offset3[2] = {(float)(0.0 - scale[0]*2.0*width3/2.0/res[0]), (float)(offset2[1] - scale[1]*2.0*height3/res[1])};
-
-        printf("%d %d, %d %d, %d %d\n", width1, height1, width2, height2, width3, height3);
 
         font_draw(str1, NULL, offset1, scale, res);
         font_draw(str2, NULL, offset2, scale, res);
