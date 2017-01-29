@@ -283,8 +283,27 @@ int main()
        
         float scale[2] = {2.0, 2.0};
         float res[2] = {(float)resx, (float)resy};
-        float offset[2] = {float(-1.0 + scale[0]*2.0*1.0/res[0]), float(1.0 - scale[1]*2.0*12.0/res[1])};
+        float offset[2] = {(float)(-1.0 + scale[0]*2.0*1.0/res[0]), (float)(1.0 - scale[1]*2.0*12.0/res[1])};
         font_draw(fragment_source, col, offset, scale, res);  // Only font drawing stuff in here
+
+        char str1[] = "1. I'm left aligned";
+        char str2[] = "2. I'm Right aligned!";
+        char str3[] = "3. Am I centered!?";
+        int width1, width2, width3;
+        int height1, height2, height3;
+        font_string_dimensions(str1, &width1, &height1);
+        font_string_dimensions(str2, &width2, &height2);
+        font_string_dimensions(str3, &width3, &height3);
+
+        float offset1[2] = {(float)(0.0 - scale[0]*2.0*width1/res[0]), (float)(0.0        - scale[1]*2.0*height1/res[1])};
+        float offset2[2] = {(float)(0.0 + 0.0*scale[0]*2.0*width2/res[0]), (float)(offset1[1] - scale[1]*2.0*height2/res[1])};
+        float offset3[2] = {(float)(0.0 - scale[0]*2.0*width3/2.0/res[0]), (float)(offset2[1] - scale[1]*2.0*height3/res[1])};
+
+        printf("%d %d, %d %d, %d %d\n", width1, height1, width2, height2, width3, height3);
+
+        font_draw(str1, NULL, offset1, scale, res);
+        font_draw(str2, NULL, offset2, scale, res);
+        font_draw(str3, NULL, offset3, scale, res);
 
         glfwSwapBuffers(window);
     }
