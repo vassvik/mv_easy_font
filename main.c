@@ -3,13 +3,9 @@
 #include <string.h>
 #include <math.h>
 
-
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <glad/glad.h>
+#include <glad/glad.c>
 #include <GLFW/glfw3.h>
-
-#include "draw_font.h"
-
 
 #define DRAW_FONT_IMPLEMENTATION
 #include "draw_font.h"
@@ -46,10 +42,9 @@ void mousewheel_callback(GLFWwindow* win, double xoffset, double yoffset);
 void windowsize_callback(GLFWwindow *win, int width, int height);
 
 
-typedef enum Token_Type {TOKEN_OTHER=0, TOKEN_OPERATOR, TOKEN_NUMERIC, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_COMMENT, TOKEN_TYPE, TOKEN_UNSET} Token_Type;
+typedef enum Token_Type {TOKEN_OTHER=0, TOKEN_OPERATOR, TOKEN_NUMERIC, TOKEN_FUNCTION, TOKEN_KEYWORD, TOKEN_COMMENT, TOKEN_VARIABLE, TOKEN_UNSET} Token_Type;
 
 const char *TOKEN_NAMES[] = {"other", "operator", "numeric", "function", "keyword", "comment", "type", "unset"};
-
 const char *TYPES[] = {"void", "int", "float", "vec2", "vec3", "vec4", "sampler1D", "sampler2D"};
 const char *KEYWORDS[] = {"#version", "#define", "in", "out", "uniform", "layout", "return", "if", "else", "for", "while"};
 
@@ -241,7 +236,7 @@ void color_string(char *str, char *col)
             }
         }
         if (is_type == 1) {
-            tokens[i].type = TOKEN_TYPE;
+            tokens[i].type = TOKEN_VARIABLE;
             *tokens[i].stop = end_char;
             continue;
         } 
@@ -273,7 +268,6 @@ int main()
     double alpha = 0.01;
 
     while ( !glfwWindowShouldClose(window)) { 
-
         // calculate fps
         double t2 = glfwGetTime();
         double dt = t2 - t1;
@@ -319,7 +313,7 @@ void init_GL()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // do not use deprecated functionality
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    
+
     window = glfwCreateWindow(resx, resy, "GLSL template", 0, 0);
     if (!window) {
         printf("Could not open glfw window\n");
@@ -328,9 +322,8 @@ void init_GL()
     }
     glfwMakeContextCurrent(window); 
 
-    glewExperimental = 1; // Needed for core profile
-    if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
+    if(!gladLoadGL()) {
+        printf("Something went wrong!\n");
         exit(-3);
     }
 
