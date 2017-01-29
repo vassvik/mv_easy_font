@@ -311,9 +311,9 @@ void font_draw(char *str, char *col, float offset[2], float size[2], float res[2
 
     int ctr = 0;
     float height = font.height;
-    float width_padded = font.width_padded;
+    // float width_padded = font.width_padded;
 
-    int *glyph_offsets = font.glyph_offsets;
+    // int *glyph_offsets = font.glyph_offsets;
     int *glyph_widths = font.glyph_widths;
 
     int len = strlen(str);
@@ -327,7 +327,7 @@ void font_draw(char *str, char *col, float offset[2], float size[2], float res[2
 
 
         int code_base = str[i]-32; // first glyph is ' ', i.e. ascii code 32
-        float offset = glyph_offsets[code_base];
+        // float offset = glyph_offsets[code_base];
         float width = glyph_widths[code_base];
 
         float x1 = X;

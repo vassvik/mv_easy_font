@@ -268,9 +268,9 @@ int main()
     double dt_avg = 0.0;  // first moment
     double dt_avg2 = 0.0; // second moment
 
-    int frames_to_avg = 1000;
+    int frames_to_avg = 100;
     int frame_ctr = 0;
-
+    glfwSwapInterval(1);
     while ( !glfwWindowShouldClose(window)) {
         double t2 = glfwGetTime();
         double dt = t2 - t1;
@@ -283,12 +283,14 @@ int main()
         if (frame_ctr == frames_to_avg) {
             dt_avg /= frames_to_avg;
             dt_avg2 /= frames_to_avg;
-            double dt_std = sqrt(dt_avg2 - dt_avg*dt_avg);
+            double dt_ste = sqrt(dt_avg2 - dt_avg*dt_avg)/sqrt(frames_to_avg);
 
             char str[64];
-            sprintf(str, "time frame = %.3fms +/- %.3fms, fps = %.1f", 
-                         1000.0*dt_avg, 1000.0*dt_std, 1.0/dt_avg);
+            sprintf(str, "time frame = %.3fms +/- %.4fms, fps = %.1f, %d frames", 
+                         1000.0*dt_avg, 1000.0*dt_ste, 1.0/dt_avg, frames_to_avg);
             glfwSetWindowTitle(window, str);
+
+            frames_to_avg = (int)(1.0/dt_avg); // this should make it update approximitely once per second
 
             dt_avg = 0.0;
             dt_avg2 = 0.0;
@@ -445,8 +447,9 @@ void mousepos_callback(GLFWwindow* win, double xpos, double ypos) {
 
 void mousewheel_callback(GLFWwindow* win, double xoffset, double yoffset) {
     (void)xoffset;
+    (void)yoffset;
 
-    double zoomFactor = pow(0.95,yoffset);
+    // double zoomFactor = pow(0.95,yoffset);
 
     glfwGetCursorPos(win, &prevx, &prevy);
 }
