@@ -79,6 +79,12 @@ float *get_colors(int *num_colors);
 #define STBI_ONLY_PNG
 #include "stb_image.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+#define BITMAP_W 512
+#define BITMAP_H 256
+
 float colors[9*3] = {
     248/255.0, 248/255.0, 242/255.0, // foreground color
     249/255.0,  38/255.0, 114/255.0, // operator
@@ -138,6 +144,9 @@ Font *font_get_font()
     return &font;
 }
 
+unsigned char ttf_buffer[1<<25];
+
+
 /*
     Reads easy_font_raw.png and extracts the font info
     i.e. offset and width of each glyph, by parsing the first row 
@@ -158,6 +167,29 @@ void font_init()
     font.initialized = 1;
 
     font.program = LoadShaders2( "vertex_shader_text.vs", "fragment_shader_text.fs" );
+
+    FILE *fp = fopen("c:/windows/fonts/arial.ttf", "rb");
+    fread(ttf_buffer, 1, 1<<25, fp);
+    fclose(fp);
+    
+    unsigned char bitmap[BITMAP_W*BITMAP_H];
+    stbtt_packedchar cdata[96];
+    stbtt_pack_context pc;
+
+    stbtt_PackBegin(&pc, bitmap, BITMAP_W, BITMAP_H, 0, 1, NULL);   
+    stbtt_PackSetOversampling(&pc, 1, 1);
+    stbtt_PackFontRange(&pc, ttf_buffer, 0, 48.0, 32, 96, cdata);
+    stbtt_PackEnd(&pc);
+
+
+    for (int i = 0; i < 96; i++) {
+        printf("%3d %2c: (%3u, %3u, %3u, %3u), %+6.2f, %+6.2f, %+6.2f, %+6.2f, %f\n", i, i+32, cdata[i].x0,    cdata[i].y0, 
+                                                                                               cdata[i].x1,    cdata[i].y1,
+                                                                                               cdata[i].xoff,  cdata[i].yoff, 
+                                                                                               cdata[i].xoff2, cdata[i].yoff2,
+                                                                                               cdata[i].xadvance);
+    }
+
 
     int x, y, n;
     unsigned char *data = stbi_load("vass_font.png", &x, &y, &n, 0);

@@ -270,7 +270,7 @@ int main()
 
     int frames_to_avg = 100;
     int frame_ctr = 0;
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
     while ( !glfwWindowShouldClose(window)) {
         double t2 = glfwGetTime();
         double dt = t2 - t1;
