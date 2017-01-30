@@ -61,7 +61,7 @@ typedef struct Font {
 
 
 void font_init();
-void font_draw(char *str, char *col, float offset[2], float size[2], float res[2]);
+void font_draw(char *str, char *col, float offset[2], float size, float res[2]);
 Font *font_get_font();
 float *get_colors(int *num_colors);
 
@@ -223,7 +223,7 @@ void font_init()
     font.width = x;
     font.width_padded = (font.width + 3) & ~0x03;
 
-    unsigned char *font_bitmap = (unsigned char*)malloc(font.width_padded*font.height);
+    unsigned char *font_bitmap = (unsigned char*)malloc(font.width_padded*font.height); 
 
     for (int j = 0; j < font.height; j++) {
         for (int i = 0; i < font.width; i++) {
@@ -326,7 +326,7 @@ void font_init()
 }
 
 
-void font_draw(char *str, char *col, float offset[2], float size[2], float res[2]) 
+void font_draw(char *str, char *col, float offset[2], float size, float res[2]) 
 {
     if (font.initialized == 0)
     {
@@ -362,8 +362,8 @@ void font_draw(char *str, char *col, float offset[2], float size[2], float res[2
         // float offset = glyph_offsets[code_base];
         float width = glyph_widths[code_base];
 
-        float x1 = X;
-        float y1 = Y;
+        float x1 = X*size/font.height;
+        float y1 = Y*size/font.height;
 
         int ctr1 = 4*ctr;
         font.text_glyph_data[ctr1++] = x1;
@@ -383,9 +383,10 @@ void font_draw(char *str, char *col, float offset[2], float size[2], float res[2
 
     glUseProgram(font.program);
     glUniform1f(glGetUniformLocation(font.program, "time"), glfwGetTime());
+    glUniform1f(glGetUniformLocation(font.program, "size_font"), font.height);
+    glUniform1f(glGetUniformLocation(font.program, "string_scale"), size);
     glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, colors);
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
-    glUniform2fv(glGetUniformLocation(font.program, "string_size"), 1, size);
     glUniform2fv(glGetUniformLocation(font.program, "resolution"), 1, res);
 
 
