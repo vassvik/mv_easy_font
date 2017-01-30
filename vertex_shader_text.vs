@@ -24,12 +24,13 @@ void main(){
 
     vec2 glyph_pos_in_texture = q.xy;
     vec2 res_glyph_in_texture = q.zw;
-    vec2 glyph_pos_in_space = instanceGlyph.xy + string_offset - vec2(0.0, string_scale);
+    vec2 glyph_pos_in_space = instanceGlyph.xy + string_offset;
 
     vec2 size_glyph = vec2(res_glyph_in_texture.x*res_bitmap.x/size_font, 1.0)*string_scale;
 
     // optimized/minimized
-    vec2 p = vec2(-1.0, 1.0) + 2.0*(vertexPosition * size_glyph + glyph_pos_in_space) / resolution;
+    // flip vertexPosition.y, since font bitmap has +Y down
+    vec2 p = vec2(-1.0, 1.0) + 2.0*(vec2(1.0, -1.0)*vertexPosition * size_glyph + glyph_pos_in_space) / resolution;
     
     // send the correct uv's in the font atlas to the fragment shader
     uv = glyph_pos_in_texture + vertexPosition*res_glyph_in_texture;

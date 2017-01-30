@@ -306,7 +306,7 @@ int main()
         int width3, height3;
         font_string_dimensions(str3, &width3, &height3);
 
-        float scale = 2.0*font->height;
+        float scale = 24.0;
         float res[2] = {(float)resx, (float)resy};
         float offset3[2] = {0.0, 0.0};
 

@@ -144,7 +144,9 @@ Font *font_get_font()
     return &font;
 }
 
+// @Optimization: this one uses way more memory than needed
 unsigned char ttf_buffer[1<<25];
+stbtt_packedchar cdata[96];
 
 
 /*
@@ -173,7 +175,6 @@ void font_init()
     fclose(fp);
     
     unsigned char bitmap[BITMAP_W*BITMAP_H];
-    stbtt_packedchar cdata[96];
     stbtt_pack_context pc;
 
     stbtt_PackBegin(&pc, bitmap, BITMAP_W, BITMAP_H, 0, 1, NULL);   
@@ -228,7 +229,7 @@ void font_init()
     for (int j = 0; j < font.height; j++) {
         for (int i = 0; i < font.width; i++) {
             int k1 = (j+1)*font.width + i;
-            int k2 = (font.height - j - 1)*font.width_padded + i; // flip y-axis of texture
+            int k2 = j*font.width_padded + i; // flip y-axis of texture
 
             int R = data[n*k1+0];
             int G = data[n*k1+1];
