@@ -395,7 +395,6 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     // update uniforms
     glUseProgram(font.program);
-    glUniform1f(glGetUniformLocation(font.program, "time"), glfwGetTime());
     glUniform1f(glGetUniformLocation(font.program, "scale_factor"), size/font.font_size);
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
     glUniform2fv(glGetUniformLocation(font.program, "resolution"), 1, res);
