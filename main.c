@@ -33,6 +33,8 @@ double resy = 1000;
 double prevx, prevy;    // for mouse position
 int clickedButtons = 0; // bit field for mouse clicks
 
+int SKIP_DRAWING = 0;
+
 enum buttonMaps { FIRST_BUTTON=1, SECOND_BUTTON=2, THIRD_BUTTON=4, FOURTH_BUTTON=8, FIFTH_BUTTON=16, NO_BUTTON=0 };
 enum modifierMaps { CTRL=2, SHIFT=1, ALT=4, META=8, NO_MODIFIER=0 };
 
@@ -303,15 +305,17 @@ int main()
 
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-       
-        float res[2] = {(float)resx, (float)resy};
-        float offset[2] = {0.0, 0.0};
-        float font_size = 18.0;
+        
+        if (SKIP_DRAWING == 0) {       
+            float res[2] = {(float)resx, (float)resy};
+            float offset[2] = {0.0, 0.0};
+            float font_size = 18.0;
 
-        int width, height;
-        mv_ef_string_dimensions(fragment_source, &width, &height, font_size);
+            int width, height;
+            mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
 
-        mv_ef_draw(fragment_source, col, offset, font_size, res);
+            mv_ef_draw(fragment_source, col, offset, font_size, res);
+        }
 
         glfwSwapBuffers(window);
     }
@@ -386,6 +390,9 @@ void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) 
         glfwSetWindowShouldClose(win, GL_TRUE);
     }
 
+    if (key == GLFW_KEY_TAB && action) {
+        SKIP_DRAWING = 1 - SKIP_DRAWING;
+    }
 }
 
 // Callback function called every time a mouse button pressed or released

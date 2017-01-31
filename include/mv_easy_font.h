@@ -184,9 +184,7 @@ void mv_ef_init()
     // @TODO: Should probably hard code this eventually, as the shaders are finalized? 2 less files
     font.program = mv_ef_load_shaders( "vertex_shader_text.vs", "fragment_shader_text.fs" );
 
-    //
     // load .ttf into a bitmap using stb_truetype.h
-    //
     font.width = 512;
     font.height = 256;
     font.font_size = 48.0;
@@ -199,9 +197,9 @@ void mv_ef_init()
     fread(ttf_buffer, 1, ttf_size_max, fp);
     fclose(fp);
     
-    unsigned char *bitmap = malloc(font.height*font.width);
 
     // Pack and create bitmap
+    unsigned char *bitmap = malloc(font.height*font.width);
     stbtt_pack_context pc;
     stbtt_PackBegin(&pc, bitmap, font.width, font.height, 0, 1, NULL);   
     stbtt_PackSetOversampling(&pc, 1, 1);
@@ -355,6 +353,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
         return;
     } 
 
+    // parse string, convert to vbo data
     float X = 0.0;
     float Y = 0.0;
 
@@ -384,6 +383,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     // update bindings
     glBindVertexArray(font.vao);
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);
     glActiveTexture(GL_TEXTURE1);
