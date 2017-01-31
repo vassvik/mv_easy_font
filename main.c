@@ -7,8 +7,8 @@
 #include <glad/glad.c>
 #include <GLFW/glfw3.h>
 
-#define DRAW_FONT_IMPLEMENTATION
 #include "draw_font.h"
+
 
 /*
     Uniform random numbers between 0.0 (inclusive) and 1.0 (exclusive)
@@ -268,8 +268,6 @@ int main()
     double dt_avg = 0.0;  // first moment
     double dt_avg2 = 0.0; // second moment
 
-    Font *font = font_get_font();
-
     int frames_to_avg = 100;
     int frame_ctr = 0;
     glfwSwapInterval(0);
@@ -299,20 +297,17 @@ int main()
             frame_ctr = 0;
         }
 
-
-
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
        
-        char str3[] = "qweqweq(){}|weqeqweqeqweq\nasdasd asdasd asd\nAS|D(vq";
-        int width3, height3;
-        font_string_dimensions(str3, &width3, &height3);
-
-        float scale = 24.0;
         float res[2] = {(float)resx, (float)resy};
-        float offset3[2] = {0.0, 0.0};
+        float offset[2] = {0.0, 0.0};
+        float font_size = 20.0;
 
-        font_draw(fragment_source, col, offset3, scale, res);
+        int width, height;
+        font_string_dimensions(fragment_source, &width, &height, font_size);
+
+        font_draw(fragment_source, col, offset, font_size, res);
 
         glfwSwapBuffers(window);
     }
@@ -446,3 +441,6 @@ void mousewheel_callback(GLFWwindow* win, double xoffset, double yoffset) {
     glfwGetCursorPos(win, &prevx, &prevy);
 }
 
+
+#define DRAW_FONT_IMPLEMENTATION
+#include "draw_font.h"
