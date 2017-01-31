@@ -27,7 +27,7 @@ console.ttf is hardcoded at the moment, so that will also have to be available i
 the example code uses GLFW and GLAD, but those should not be required, as long as opengl symbols are loaded properly.
 
 ### Screenshot:
-![screenshot](http://i.imgur.com/DPQnUiH.png)
+![screenshot](http://i.imgur.com/zSHHVo7.png)
 
 ### Font bitmap
 
