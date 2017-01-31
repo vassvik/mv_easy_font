@@ -7,7 +7,12 @@
 #include <glad/glad.c>
 #include <GLFW/glfw3.h>
 
-#include "draw_font.h"
+// incldue stb_rect_pack.h to use effective packing
+// #include "stb_rect_pack.h"
+
+// define MV_EF_OUTPUT_BITMAP_TO_FILE to save the generated bitmap to "font.png". Requires stb_image_write.h.
+#define MV_EF_OUTPUT_BITMAP_TO_FILE
+#include "mv_easy_font.h"
 
 
 /*
@@ -254,12 +259,11 @@ void color_string(char *str, char *col)
         }
     }
 }
-
 int main() 
 {
     init_GL();
 
-    char *fragment_source = readFile2("vertex_shader_text.vs");
+    char *fragment_source = mv_ef_read_entire_file("vertex_shader_text.vs");
     char *col = (char*)calloc(strlen(fragment_source), 1);
     color_string(fragment_source, col); // syntax highlighting
 
@@ -302,12 +306,12 @@ int main()
        
         float res[2] = {(float)resx, (float)resy};
         float offset[2] = {0.0, 0.0};
-        float font_size = 48.0;
+        float font_size = 18.0;
 
         int width, height;
-        font_string_dimensions(fragment_source, &width, &height, font_size);
+        mv_ef_string_dimensions(fragment_source, &width, &height, font_size);
 
-        font_draw(fragment_source, col, offset, font_size, res);
+        mv_ef_draw(fragment_source, col, offset, font_size, res);
 
         glfwSwapBuffers(window);
     }
@@ -442,5 +446,5 @@ void mousewheel_callback(GLFWwindow* win, double xoffset, double yoffset) {
 }
 
 
-#define DRAW_FONT_IMPLEMENTATION
-#include "draw_font.h"
+#define MV_EASY_FONT_IMPLEMENTATION
+#include "mv_easy_font.h"
