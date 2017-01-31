@@ -22,7 +22,7 @@ double rng()
 }
 
 GLFWwindow *window;
-double resx = 1548;
+double resx = 1600;
 double resy = 1000;
 
 double prevx, prevy;    // for mouse position
@@ -299,10 +299,12 @@ int main()
             frame_ctr = 0;
         }
 
+
+
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
        
-        char str3[] = "qweqweqweqeqweqeqweq\nasdasd asdasd asd";
+        char str3[] = "qweqweq(){}|weqeqweqeqweq\nasdasd asdasd asd\nAS|D(vq";
         int width3, height3;
         font_string_dimensions(str3, &width3, &height3);
 
@@ -310,7 +312,7 @@ int main()
         float res[2] = {(float)resx, (float)resy};
         float offset3[2] = {0.0, 0.0};
 
-        font_draw(str3, NULL, offset3, scale, res);
+        font_draw(fragment_source, col, offset3, scale, res);
 
         glfwSwapBuffers(window);
     }

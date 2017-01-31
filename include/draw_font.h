@@ -82,6 +82,9 @@ float *get_colors(int *num_colors);
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #define BITMAP_W 512
 #define BITMAP_H 256
 
@@ -147,6 +150,7 @@ Font *font_get_font()
 // @Optimization: this one uses way more memory than needed
 unsigned char ttf_buffer[1<<25];
 stbtt_packedchar cdata[96];
+#define FONT_SIZE 48.0
 
 
 /*
@@ -170,7 +174,7 @@ void font_init()
 
     font.program = LoadShaders2( "vertex_shader_text.vs", "fragment_shader_text.fs" );
 
-    FILE *fp = fopen("c:/windows/fonts/arial.ttf", "rb");
+    FILE *fp = fopen("c:/windows/fonts/consola.ttf", "rb");
     fread(ttf_buffer, 1, 1<<25, fp);
     fclose(fp);
     
@@ -179,7 +183,7 @@ void font_init()
 
     stbtt_PackBegin(&pc, bitmap, BITMAP_W, BITMAP_H, 0, 1, NULL);   
     stbtt_PackSetOversampling(&pc, 1, 1);
-    stbtt_PackFontRange(&pc, ttf_buffer, 0, 48.0, 32, 96, cdata);
+    stbtt_PackFontRange(&pc, ttf_buffer, 0, FONT_SIZE, 32, 96, cdata);
     stbtt_PackEnd(&pc);
 
 
@@ -191,7 +195,13 @@ void font_init()
                                                                                                cdata[i].xadvance);
     }
 
+    stbi_write_png("blah.png", BITMAP_W, BITMAP_H, 1, bitmap, 0);
 
+    font.width = BITMAP_W;
+    font.width_padded = BITMAP_W;
+    font.height = BITMAP_H;
+
+/*
     int x, y, n;
     unsigned char *data = stbi_load("vass_font.png", &x, &y, &n, 0);
     printf("%d %d %d\n", x, y, n);fflush(stdout);
@@ -245,6 +255,7 @@ void font_init()
     }
 
     free(data); 
+*/
 
 
     //-------------------------------------------------------------------------
@@ -256,9 +267,9 @@ void font_init()
     glGenTextures(1, &font.texture_fontdata);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, font.width_padded, font.height, 0, GL_RED, GL_UNSIGNED_BYTE, font_bitmap);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, font.width_padded, font.height, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -288,23 +299,38 @@ void font_init()
     // create 1D texture and upload font metadata
     // used for lookup in the bitmap texture    
     glGenTextures(1, &font.texture_metadata);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_1D, font.texture_metadata);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, font.texture_metadata);
 
-    float *texture_metadata = (float*)malloc(sizeof(float)*4*NUM_GLYPHS);
+    float *texture_metadata = (float*)malloc(sizeof(float)*8*NUM_GLYPHS);
     
     for (int i = 0; i < NUM_GLYPHS; i++) {
+        /*
         // all the glyphs are in a single line, but in principle we can support multiple lines
         texture_metadata[4*i+0] = font.glyph_offsets[i]/(double)font.width_padded;
         texture_metadata[4*i+1] = 0.0;
         texture_metadata[4*i+2] = font.glyph_widths[i]/(double)font.width_padded;
         texture_metadata[4*i+3] = 1.0;
+        */
+        int k1 = 0*NUM_GLYPHS + i;
+        int k2 = 1*NUM_GLYPHS + i;
+        texture_metadata[4*k1+0] = cdata[i].x0/(double)font.width_padded;
+        texture_metadata[4*k1+1] = cdata[i].y0/(double)font.height;
+        texture_metadata[4*k1+2] = (cdata[i].x1-cdata[i].x0)/(double)font.width_padded;
+        texture_metadata[4*k1+3] = (cdata[i].y1-cdata[i].y0)/(double)font.height;
+
+        texture_metadata[4*k2+0] = cdata[i].xoff/(double)font.width_padded;
+        texture_metadata[4*k2+1] = cdata[i].yoff/(double)font.height;
+        texture_metadata[4*k2+2] = cdata[i].xoff2/(double)font.width_padded;
+        texture_metadata[4*k2+3] = cdata[i].yoff2/(double)font.height;
     }
 
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, NUM_GLYPHS, 0, GL_RGBA, GL_FLOAT, texture_metadata);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, NUM_GLYPHS, 2, 0, GL_RGBA, GL_FLOAT, texture_metadata);
 
     free(texture_metadata);
 
@@ -347,24 +373,24 @@ void font_draw(char *str, char *col, float offset[2], float size, float res[2])
     // float width_padded = font.width_padded;
 
     // int *glyph_offsets = font.glyph_offsets;
-    int *glyph_widths = font.glyph_widths;
+    //int *glyph_widths = font.glyph_widths;
 
     int len = strlen(str);
     for (int i = 0; i < len; i++) {
 
         if (str[i] == '\n') {
             X = 0.0;
-            Y -= height;
+            Y -= FONT_SIZE+10;
             continue;
         }
 
 
         int code_base = str[i]-32; // first glyph is ' ', i.e. ascii code 32
         // float offset = glyph_offsets[code_base];
-        float width = glyph_widths[code_base];
+        //float width = glyph_widths[code_base];
 
-        float x1 = X*size/font.height;
-        float y1 = Y*size/font.height;
+        float x1 = (X+0*cdata[code_base].xoff)*size/FONT_SIZE;
+        float y1 = (Y-0*cdata[code_base].yoff)*size/FONT_SIZE;
 
         int ctr1 = 4*ctr;
         font.text_glyph_data[ctr1++] = x1;
@@ -372,7 +398,7 @@ void font_draw(char *str, char *col, float offset[2], float size, float res[2])
         font.text_glyph_data[ctr1++] = code_base;
         font.text_glyph_data[ctr1++] = col ? col[i] : 0;
 
-        X += width;
+        X += cdata[code_base].xadvance;
         ctr++;
     }
 
@@ -384,7 +410,7 @@ void font_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     glUseProgram(font.program);
     glUniform1f(glGetUniformLocation(font.program, "time"), glfwGetTime());
-    glUniform1f(glGetUniformLocation(font.program, "size_font"), font.height);
+    glUniform1f(glGetUniformLocation(font.program, "size_font"), FONT_SIZE);
     glUniform1f(glGetUniformLocation(font.program, "string_scale"), size);
     glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, colors);
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
@@ -394,7 +420,7 @@ void font_draw(char *str, char *col, float offset[2], float size, float res[2])
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_1D, font.texture_metadata);
+    glBindTexture(GL_TEXTURE_2D, font.texture_metadata);
 
 
     glBindVertexArray(font.vao);
