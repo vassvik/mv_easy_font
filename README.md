@@ -1,6 +1,6 @@
 # mv_easy_font
 
-Simple texture renderer in Opengl 3.3 using stb_truetype.h to load a packed bitmap into texture of a .ttf font. Uses instanced rendering, so that only position and dimensions of each glyph have to be updated isntead of each vertex. 
+Simple texture renderer in Opengl 3.3 using stb_truetype.h to load a packed bitmap into texture of a .ttf font. Uses instanced rendering, so that only position, index and color of each glyph have to be updated instead of updating two triangles per glyph. 
 
 
 ### Usage
