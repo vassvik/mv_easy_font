@@ -39,6 +39,10 @@ typedef struct Font {
 
     stbtt_packedchar cdata[96];
 
+    float ascent;
+    float descent;
+    float linegap;
+
     // opengl stuff
     GLuint vao; 
 
@@ -75,6 +79,8 @@ void font_string_dimensions(char *str, int *width, int *height, int font_size);
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
+Font font = {0};
+
 float colors[9*3] = {
     248/255.0, 248/255.0, 242/255.0, // foreground color
     249/255.0,  38/255.0, 114/255.0, // operator
@@ -97,9 +103,11 @@ void set_colors(float *colors_)
 {
     for (int i = 0; i < 9*3; i++)
         colors[i] = colors_[i];
+
+    glUseProgram(font.program);
+    glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, colors);
 }
 
-Font font = {0};
 
 void font_string_dimensions(char *str, int *width, int *height, int font_size)
 {
@@ -117,7 +125,7 @@ void font_string_dimensions(char *str, int *width, int *height, int font_size)
             X = 0;
             Y++;
         } else {
-           X += font.cdata[*ptr-32].xadvance*font_size/font.font_size;
+           X += (font.cdata[*ptr-32].xadvance)*font_size/font.font_size;
         }
         ptr++;
     }
@@ -128,7 +136,7 @@ void font_string_dimensions(char *str, int *width, int *height, int font_size)
             *width = X;
     } 
 
-    *height = Y*(font.font_size+10)*font_size/font.font_size; // @Robustness: apparently this works? for 48 font size at least
+    *height = Y*(font.ascent-font.descent+font.linegap)*font_size/font.font_size; // @Robustness: apparently this works? for 48 font size at least
 }
 
 
@@ -182,6 +190,30 @@ void font_init()
     stbtt_PackSetOversampling(&pc, 1, 1);
     stbtt_PackFontRange(&pc, ttf_buffer, 0, font.font_size, 32, 96, font.cdata);
     stbtt_PackEnd(&pc);
+
+    stbtt_fontinfo info;
+    stbtt_InitFont(&info, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer,0));
+
+
+    float s = stbtt_ScaleForPixelHeight(&info, 48.0);
+
+    int a, d, l;
+    stbtt_GetFontVMetrics(&info, &a, &d, &l);
+    printf("ascent %f  descent %f  linegap %f  yadvance %f\n", a*s, d*s, l*s, s*(a-d+l));
+
+    font.ascent = a*s;
+    font.descent = d*s;
+    font.linegap = l*s;
+
+    stbtt_packedchar *cdata = font.cdata;
+
+    for (int i = 0; i < 96; i++) {
+ printf("%3d %2c: (%3u, %3u, %3u, %3u), %+6.2f, %+6.2f, %+6.2f, %+6.2f, %f\n", i, i+32, cdata[i].x0,    cdata[i].y0, 
+                                                                                         cdata[i].x1,    cdata[i].y1,
+                                                                                         cdata[i].xoff,  cdata[i].yoff, 
+                                                                                     cdata[i].xoff2, cdata[i].yoff2,
+                                                                                      cdata[i].xadvance);
+}
 
     // @Robustness: Keep ttf_buffer, to easily be able to rebuild font at a later time?
     free(ttf_buffer);
@@ -270,6 +302,11 @@ void font_init()
     glUniform1i(glGetUniformLocation(font.program, "sampler_font"), 0);
     glUniform1i(glGetUniformLocation(font.program, "sampler_meta"), 1);
 
+    glUniform2f(glGetUniformLocation(font.program, "res_bitmap"), font.width, font.height);
+    glUniform2f(glGetUniformLocation(font.program, "res_meta"),  NUM_GLYPHS, 2);
+    glUniform1f(glGetUniformLocation(font.program, "offset_firstline"), font.ascent-font.descent-font.linegap/2.0);
+    glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, colors);
+
 }
 
 
@@ -295,7 +332,7 @@ void font_draw(char *str, char *col, float offset[2], float size, float res[2])
 
         if (str[i] == '\n') {
             X = 0.0;
-            Y -= font.font_size+10; // @Robustness: apparently this works? for 48 font size at least
+            Y -= (font.ascent-font.descent+font.linegap);
             continue;
         }
 
@@ -322,18 +359,14 @@ void font_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     glUseProgram(font.program);
     glUniform1f(glGetUniformLocation(font.program, "time"), glfwGetTime());
-    glUniform1f(glGetUniformLocation(font.program, "size_font"), font.font_size);
-    glUniform1f(glGetUniformLocation(font.program, "string_scale"), size);
-    glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, colors);
+    glUniform1f(glGetUniformLocation(font.program, "scale_factor"), size/font.font_size);
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
     glUniform2fv(glGetUniformLocation(font.program, "resolution"), 1, res);
-
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, font.texture_metadata);
-
 
     glBindVertexArray(font.vao);
 

@@ -302,7 +302,7 @@ int main()
        
         float res[2] = {(float)resx, (float)resy};
         float offset[2] = {0.0, 0.0};
-        float font_size = 20.0;
+        float font_size = 48.0;
 
         int width, height;
         font_string_dimensions(fragment_source, &width, &height, font_size);
