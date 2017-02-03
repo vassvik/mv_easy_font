@@ -33,6 +33,8 @@ The example code uses GLFW and GLAD, but those should not be required, as long a
 
 - Inline shader codes for less files to include
 
+- ADd functionality to adjust the bitmap texture size based on the font size. currently it's using a 512x256 texture. 
+
 ### Screenshot:
 ![screenshot](http://i.imgur.com/zSHHVo7.png)
 
