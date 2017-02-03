@@ -40,6 +40,7 @@ enum modifierMaps { CTRL=2, SHIFT=1, ALT=4, META=8, NO_MODIFIER=0 };
 
 // all glfw and opengl init here
 void init_GL();
+void frame_timer();
 
 // callback functions to send to glfw
 void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods);
@@ -270,44 +271,13 @@ int main(int argc, char *argv[])
         mv_ef_init(argv[1], 48.0, NULL, NULL);
     }
 
-    char *fragment_source = mv_ef_read_entire_file("data/vertex_shader_text.vs");
+    char *fragment_source = mv_ef_read_entire_file("extra/vertex_shader_text.vs");
     char *col = (char*)calloc(strlen(fragment_source), 1);
     color_string(fragment_source, col); // syntax highlighting
 
-    double t1 = glfwGetTime();
-
-    double dt_avg = 0.0;  // first moment
-    double dt_avg2 = 0.0; // second moment
-
-    int frames_to_avg = 100;
-    int frame_ctr = 0;
     glfwSwapInterval(0);
     while ( !glfwWindowShouldClose(window)) {
-        double t2 = glfwGetTime();
-        double dt = t2 - t1;
-        t1 = t2;
-
-        dt_avg += dt;
-        dt_avg2 += dt*dt;
-        frame_ctr++;
-
-        if (frame_ctr == frames_to_avg) {
-            dt_avg /= frames_to_avg;
-            dt_avg2 /= frames_to_avg;
-            double dt_std = sqrt(dt_avg2 - dt_avg*dt_avg);
-            double dt_ste = dt_std/sqrt(frames_to_avg);
-
-            char str[64];
-            sprintf(str, "time frame = %.3fms +/- %.4fms (%.4fms), fps = %.1f, %d frames", 
-                         1000.0*dt_avg, 1000.0*dt_ste, 1000.0*dt_std, 1.0/dt_avg, frames_to_avg);
-            glfwSetWindowTitle(window, str);
-
-            frames_to_avg = (int)(1.0/dt_avg); // this should make it update approximitely once per second
-
-            dt_avg = 0.0;
-            dt_avg2 = 0.0;
-            frame_ctr = 0;
-        }
+        frame_timer();
 
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -334,6 +304,39 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+void frame_timer()
+{
+    static double t1 = 0.0;
+    static double avg_dt = 0.0;
+    static double avg_dt2 = 0.0;
+    static int avg_counter = 0;
+    static int num_samples = 60;
+
+    double t2 = glfwGetTime();
+    double dt = t2-t1;
+    t1 = t2;
+
+    avg_dt += dt;
+    avg_dt2 += dt*dt;
+    avg_counter++;
+
+    if (avg_counter == num_samples) {
+        avg_dt  /= num_samples;
+        avg_dt2 /= num_samples;
+        double std_dt = sqrt(avg_dt2 - avg_dt*avg_dt);
+        double ste_dt = std_dt / sqrt(num_samples);
+
+        char window_title_string[128];
+        sprintf(window_title_string, "dt: avg = %.3fms, std = %.3fms, ste = %.4fms. fps = %.1f", 1000.0*avg_dt, 1000.0*std_dt, 1000.0*ste_dt, 1.0/avg_dt);
+        glfwSetWindowTitle(window, window_title_string);
+
+        num_samples = 1.0/avg_dt;
+        
+        avg_dt = 0.0;
+        avg_dt2 = 0.0;
+        avg_counter = 0;
+    }
+}
 
 /*****************************************************************************/
 // OpenGL and GLFW boilerplate below
