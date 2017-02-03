@@ -137,6 +137,10 @@ void mv_ef_set_colors(unsigned char *colors)
     for (int i = 0; i < 9*3; i++)
         mv_ef_colors[i] = colors[i];
 
+    int num_colors = sizeof(mv_ef_colors)/3;
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_1D, font.texture_colors);
+    glTexSubImage1D(GL_TEXTURE_1D, 0, 0, num_colors, GL_RGB, GL_UNSIGNED_BYTE, mv_ef_colors);
     //glUseProgram(font.program);
     //glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, mv_ef_colors);
 }
@@ -365,7 +369,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     static float text_glyph_data[4*MAX_STRING_LEN] = {0};
 
     if (font.initialized == 0) {
-        mv_ef_init(NULL, 48.0, "vertex_shader_text.vs", "fragment_shader_text.fs");
+        mv_ef_init(NULL, 48.0, NULL, NULL);
     }
 
     int len = strlen(str);
@@ -509,7 +513,6 @@ uniform sampler2D sampler_meta;\n\
 \n\
 uniform float offset_firstline; // ascent - descent - linegap/2\n\
 uniform float scale_factor;     // scaling factor proportional to font size\n\
-\n\
 uniform vec2 string_offset;     // offset of upper-left corner\n\
 \n\
 uniform vec2 res_meta;   // 96x2 \n\
@@ -520,43 +523,46 @@ out vec2 uv;\n\
 out float color_index; // for syntax highlighting\n\
 \n\
 void main() {\n\
-    vec2 res_meta = textureSize(sampler_meta, 0);\n\
-    vec2 res_bitmap = textureSize(sampler_font, 0);\n\
-\n\
-    // (xoff, yoff, xoff2, yoff2)\n\
+    // (xoff, yoff, xoff2, yoff2), from second row of texture\n\
     vec4 q2 = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.75))*vec4(res_bitmap, res_bitmap);\n\
 \n\
-    vec2 p;\n\
-    p = vec2(1.0, -1.0)*(vertexPosition*(q2.zw - q2.xy) + q2.xy);\n\
-    p.y -= offset_firstline;\n\
-    p *= scale_factor;\n\
-    p += instanceGlyph.xy + string_offset;\n\
-    p *= 2.0/resolution;\n\
-    p += vec2(-1.0, 1.0);\n\
-\n\
-    // send the correct uv's in the font atlas to the fragment shader\n\
-    // (x0, y0, x1-x0, y1-y0)\n\
-    vec4 q = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.25));\n\
-    uv = q.xy + vertexPosition*q.zw;\n\
-    color_index = instanceGlyph.w;\n\
+    vec2 p = vertexPosition*(q2.zw - q2.xy) + q2.xy; // offset and scale it properly relative to baseline\n\
+    p *= vec2(1.0, -1.0);                            // flip y, since texture is upside-down\n\
+    p.y -= offset_firstline;                         // make sure the upper-left corner of the string is in the upper-left corner of the screen\n\
+    p *= scale_factor;                               // scale relative to font size\n\
+    p += instanceGlyph.xy + string_offset;           // move glyph into the right position\n\
+    p *= 2.0/resolution;                             // to NDC\n\
+    p += vec2(-1.0, 1.0);                            // move to upper-left corner instead of center\n\
 \n\
     gl_Position = vec4(p, 0.0, 1.0);\n\
+\n\
+    // (x0, y0, x1-x0, y1-y0), from first row of texture\n\
+    vec4 q = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.25));\n\
+\n\
+    // send the correct uv's in the font atlas to the fragment shader\n\
+    uv = q.xy + vertexPosition*q.zw;\n\
+    color_index = instanceGlyph.w;\n\
 }\n";
 
 char fs_source[] = \
-    "#version 330 core\n\
-    \n\
-    in vec2 uv;\n\
-    in float color_index;\n\
-    uniform sampler2D sampler_font;\n\
-    uniform vec3 colors[9];\n\
-    out vec4 color;\n\
-    \n\
-    void main()\n\
-    {\n\
-        vec3 col = colors[int(color_index+0.5)];\n\
-        float s = texture(sampler_font, uv).r;\n\
-        color = vec4(col, s);\n\
+"#version 330 core\n\
+\n\
+in vec2 uv;\n\
+in float color_index;\n\
+\n\
+uniform sampler2D sampler_font;\n\
+uniform sampler1D sampler_colors;\n\
+uniform float num_colors;\n\
+\n\
+uniform float time;\n\
+\n\
+out vec4 color;\n\
+\n\
+void main()\n\
+{\n\
+    vec3 col = texture(sampler_colors, (color_index+0.5 + time)/num_colors).rgb;\n\
+    float s = texture(sampler_font, uv).r;\n\
+    color = vec4(col, s);\n\
 }\n";
 
 GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_file_path){

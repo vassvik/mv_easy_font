@@ -218,7 +218,7 @@ void color_string(char *str, char *col)
             *tokens[i].stop = end_char;
             continue;
         } 
-        
+
         // Check if it's a function
         float f;
         if (end_char == '(') {
@@ -262,10 +262,9 @@ void color_string(char *str, char *col)
         }
     }
 }
-int main() 
+int main(int argc, char *argv[]) 
 {
     init_GL();
-
 
     char *fragment_source = mv_ef_read_entire_file("vertex_shader_text.vs");
     char *col = (char*)calloc(strlen(fragment_source), 1);
@@ -395,6 +394,16 @@ void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) 
 
     if (key == GLFW_KEY_TAB && action) {
         SKIP_DRAWING = 1 - SKIP_DRAWING;
+    }
+
+    if (key == GLFW_KEY_SPACE && action) {
+        int num_colors;
+        unsigned char *colors = mv_ef_get_colors(&num_colors);
+
+        for (int i = 0; i < 3*num_colors; i++) {
+            colors[i] = 256*rng();
+        }
+        mv_ef_set_colors(colors);
     }
 }
 
