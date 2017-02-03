@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
 {
     init_GL();
 
-    char *fragment_source = mv_ef_read_entire_file("vertex_shader_text.vs");
+    char *fragment_source = fs_source;
     char *col = (char*)calloc(strlen(fragment_source), 1);
     color_string(fragment_source, col); // syntax highlighting
 

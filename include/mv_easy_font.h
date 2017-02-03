@@ -502,6 +502,8 @@ char *mv_ef_read_entire_file(const char *filename) {
     return string;
 }
 
+// inlined shader source code, so i don't have to ship 2 additional files
+// the last two arguments to mv_ef_init() can be used to load custom shader files
 char vs_source[] = \
 "#version 330 core\n\
 \n\
