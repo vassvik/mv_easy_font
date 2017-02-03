@@ -19,6 +19,8 @@ GLuint mv_ef_load_shaders(const char *vs_path, const char *fs_path);
 typedef struct {
     int initialized; // to be able to initialize from the first call to mv_ef_draw()
 
+    char filename[256];
+
     // character info
     // filled up by stb_truetype.h
     stbtt_packedchar cdata[96]; 
@@ -52,7 +54,7 @@ typedef struct {
     GLuint vbo_instances; // vec4: (char_pos_x, char_pos_y, char_index, color_index)
 } mv_ef_font;
 
-void mv_ef_init();
+void mv_ef_init(char *filename, int font_size);
 void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2]);
 void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size);
 void mv_ef_set_colors(float *colors);
@@ -177,9 +179,14 @@ void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size)
 //
 // calculates and saves a bunch of useful variables and put them in the global font variable
 // 
-void mv_ef_init()
+void mv_ef_init(char *filename, int font_size)
 {
     font.initialized = 1;
+
+    if (filename)
+        strcpy(font.filename, filename);
+    else
+        strcpy(font.filename, "consola.ttf");
 
     // @TODO: Should probably hard code this eventually, as the shaders are finalized? 2 less files
     font.program = mv_ef_load_shaders( "vertex_shader_text.vs", "fragment_shader_text.fs" );
@@ -187,13 +194,13 @@ void mv_ef_init()
     // load .ttf into a bitmap using stb_truetype.h
     font.width = 512;
     font.height = 256;
-    font.font_size = 48.0;
+    font.font_size = font_size;
 
     // Read the data from file
     int ttf_size_max = 1e6;
     unsigned char *ttf_buffer = malloc(ttf_size_max); // sufficient size for consola.ttf
 
-    FILE *fp = fopen("consola.ttf", "rb");
+    FILE *fp = fopen(font.filename, "rb");
     fread(ttf_buffer, 1, ttf_size_max, fp);
     fclose(fp);
     
@@ -214,7 +221,7 @@ void mv_ef_init()
     stbtt_fontinfo info;
     stbtt_InitFont(&info, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer,0));
 
-    float s = stbtt_ScaleForPixelHeight(&info, 48.0);
+    float s = stbtt_ScaleForPixelHeight(&info, font.font_size);
     int a, d, l;
     stbtt_GetFontVMetrics(&info, &a, &d, &l);
     printf("ascent %f  descent %f  linegap %f  yadvance %f\n", a*s, d*s, l*s, s*(a-d+l));
@@ -342,7 +349,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     static float text_glyph_data[4*MAX_STRING_LEN] = {0};
 
     if (font.initialized == 0) {
-        mv_ef_init();
+        mv_ef_init(NULL, 48.0);
     }
 
     int len = strlen(str);
@@ -382,8 +389,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 
 
     // Backup GL state
-    GLint last_program; 
-    GLint last_vertex_array; 
+    GLint last_program, last_vertex_array; 
     GLint last_texture0, last_texture1; 
     GLint last_blend_src, last_blend_dst; 
     GLint last_blend_equation_rgb, last_blend_equation_alpha; 
@@ -398,10 +404,10 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     glGetIntegerv(GL_BLEND_SRC, &last_blend_src);
     glGetIntegerv(GL_BLEND_DST, &last_blend_dst);
-    glGetIntegerv(GL_BLEND_EQUATION_RGB, &last_blend_equation_rgb);
+    glGetIntegerv(GL_BLEND_EQUATION_RGB,   &last_blend_equation_rgb);
     glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &last_blend_equation_alpha);
 
-    GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+    GLboolean last_enable_blend      = glIsEnabled(GL_BLEND);
     GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
 
     // Setup render state: alpha-blending enabled, no depth testing and bind textures

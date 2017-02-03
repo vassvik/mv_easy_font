@@ -265,6 +265,8 @@ int main()
 {
     init_GL();
 
+    mv_ef_init("arial.ttf", 48.0);
+
     char *fragment_source = mv_ef_read_entire_file("vertex_shader_text.vs");
     char *col = (char*)calloc(strlen(fragment_source), 1);
     color_string(fragment_source, col); // syntax highlighting
@@ -310,7 +312,7 @@ int main()
         if (SKIP_DRAWING == 0) {       
             float res[2] = {(float)resx, (float)resy};
             float offset[2] = {0.0, 0.0};
-            float font_size = 18.0;
+            float font_size = 32.0;
 
             int width, height;
             mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
