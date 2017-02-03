@@ -198,7 +198,7 @@ void mv_ef_init(char *filename, int font_size)
 
     // Read the data from file
     int ttf_size_max = 1e6;
-    unsigned char *ttf_buffer = malloc(ttf_size_max); // sufficient size for consola.ttf
+    unsigned char *ttf_buffer = (unsigned char*)malloc(ttf_size_max); // sufficient size for consola.ttf
 
     FILE *fp = fopen(font.filename, "rb");
     fread(ttf_buffer, 1, ttf_size_max, fp);
@@ -206,7 +206,7 @@ void mv_ef_init(char *filename, int font_size)
     
 
     // Pack and create bitmap
-    unsigned char *bitmap = malloc(font.height*font.width);
+    unsigned char *bitmap = (unsigned char*)malloc(font.height*font.width);
     stbtt_pack_context pc;
     stbtt_PackBegin(&pc, bitmap, font.width, font.height, 0, 1, NULL);   
     stbtt_PackSetOversampling(&pc, 1, 1);
