@@ -31,8 +31,6 @@ The example code uses GLFW and GLAD, but those should not be required, as long a
 
 ### TODO
 
-- Add a way to specify what .ttf file to use, and a way to specify the font size in pixels instead of hard coding. 
-
 - Inline shader codes for less files to include
 
 ### Screenshot:
