@@ -201,7 +201,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 
     // load .ttf into a bitmap using stb_truetype.h
     font.width = 512;
-    font.height = 256;
+    font.height = 512;
     font.font_size = font_size;
 
     // Read the data from file
@@ -212,7 +212,6 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     fread(ttf_buffer, 1, ttf_size_max, fp);
     fclose(fp);
     
-
     // Pack and create bitmap
     unsigned char *bitmap = (unsigned char*)malloc(font.height*font.width);
     stbtt_pack_context pc;
@@ -232,8 +231,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     float s = stbtt_ScaleForPixelHeight(&info, font.font_size);
     int a, d, l;
     stbtt_GetFontVMetrics(&info, &a, &d, &l);
-    printf("ascent %f  descent %f  linegap %f  yadvance %f\n", a*s, d*s, l*s, s*(a-d+l));
-
+    
     font.ascent = a*s;
     font.descent = d*s;
     font.linegap = l*s;
@@ -241,26 +239,27 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 
     free(ttf_buffer);
 
-    /*
     // output char metrics per char
     int max_y1 = 0; // for truncating packed texture if nescessary
     for (int i = 0; i < 96; i++) {
+        /*
         printf("%3d %2c: (%3u, %3u, %3u, %3u), %+6.2f, %+6.2f, %+6.2f, %+6.2f, %f\n", i, i+32, 
                                                                                       font.cdata[i].x0,    font.cdata[i].y0, 
                                                                                       font.cdata[i].x1,    font.cdata[i].y1,
                                                                                       font.cdata[i].xoff,  font.cdata[i].yoff, 
                                                                                       font.cdata[i].xoff2, font.cdata[i].yoff2,
                                                                                       font.cdata[i].xadvance);
+        */
         if (font.cdata[i].y1 > max_y1)
             max_y1 = font.cdata[i].y1;
     }
-    */
 
+    // cut away the unused part of the bitmap
+    font.height = max_y1+1;
 
     // vaos
     glGenVertexArrays(1, &font.vao);
     glBindVertexArray(font.vao);
-
 
     // quad vbo setup, used for glyph vertex positions, 
     // just uv coordinates that will be stretched accordingly by the glyphs width and height
