@@ -4,6 +4,8 @@ Simple font renderer library written in Opengl 3.3 using stb_truetype.h to load 
 
 Uses instanced rendering, so that only position, index and color of each glyph have to be updated instead of updating two triangles of vertex attributes per glyph. 
 
+Inspired by stb_easy_font.h.
+
 ### Usage
 Compile the example program with 
 ```bash
