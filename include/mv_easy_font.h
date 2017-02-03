@@ -316,10 +316,6 @@ void mv_ef_init()
 
     free(texture_metadata);
 
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     // upload constant uniforms
     glUseProgram(font.program);
     glUniform1i(glGetUniformLocation(font.program, "sampler_font"), 0);
@@ -384,8 +380,13 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
         ctr++;
     }
 
+    // @Robustness @TODO: Be able to restore blending state afterwards
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // update bindings
     glBindVertexArray(font.vao);
+
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);

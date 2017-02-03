@@ -35,6 +35,7 @@ The example code uses GLFW and GLAD, but those should not be required, as long a
 
 - Inline shader codes for less files to include
 
+- Restore changed states (blending)
 
 ### Screenshot:
 ![screenshot](http://i.imgur.com/zSHHVo7.png)
