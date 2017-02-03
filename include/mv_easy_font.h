@@ -317,6 +317,9 @@ void mv_ef_init()
     free(texture_metadata);
 
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // upload constant uniforms
     glUseProgram(font.program);
     glUniform1i(glGetUniformLocation(font.program, "sampler_font"), 0);
