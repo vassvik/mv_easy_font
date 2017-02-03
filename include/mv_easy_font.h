@@ -49,16 +49,20 @@ typedef struct {
     // the second row contain information about the relative displacement of the glyph relative to the cursor position
     GLuint texture_metadata; 
 
+    // color texture
+    // used to color each glyph individually, e.g. for syntax highlighting
+    GLuint texture_colors;
+
     // vbos
     GLuint vbo_quad;      // vec2: simply just a regular [0,1]x[0,1] quad
     GLuint vbo_instances; // vec4: (char_pos_x, char_pos_y, char_index, color_index)
 } mv_ef_font;
 
-void mv_ef_init(char *filename, int font_size);
+void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filename);
 void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2]);
 void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size);
-void mv_ef_set_colors(float *colors);
-float *mv_ef_get_colors(int *num_colors);
+void mv_ef_set_colors(unsigned char *colors);
+unsigned char *mv_ef_get_colors(int *num_colors);
 mv_ef_font *mv_ef_get_font();
 
 #ifdef __cplusplus
@@ -99,16 +103,16 @@ mv_ef_font *mv_ef_get_font();
 
 
 // @TODO: Add larger color palette. currently only support 9 colors
-float mv_ef_colors[9*3] = {
-    248/255.0, 248/255.0, 242/255.0, // foreground color
-    249/255.0,  38/255.0, 114/255.0, // operator
-    174/255.0, 129/255.0, 255/255.0, // numeric
-    102/255.0, 217/255.0, 239/255.0, // function
-    249/255.0,  38/255.0, 114/255.0, // keyword
-    117/255.0, 113/255.0,  94/255.0, // comment
-    102/255.0, 217/255.0, 239/255.0, // type
-     73/255.0,  72/255.0,  62/255.0, // background color
-     39/255.0,  40/255.0,  34/255.0  // clear color
+unsigned char mv_ef_colors[9*3] = {
+    248, 248, 242, // foreground color
+    249,  38, 114, // operator
+    174, 129, 255, // numeric
+    102, 217, 239, // function
+    249,  38, 114, // keyword
+    117, 113,  94, // comment
+    102, 217, 239, // type
+     73,  72,  62, // background color
+     39,  40,  34  // clear color
 };
 
 // private global variable that all the functions use. return with 
@@ -122,19 +126,19 @@ mv_ef_font *mv_ef_get_font()
     return &font;
 }
 
-float *mv_ef_get_colors(int *num_colors)
+unsigned char *mv_ef_get_colors(int *num_colors)
 {
-    *num_colors = sizeof(mv_ef_colors)/sizeof(float)/3;
+    *num_colors = sizeof(mv_ef_colors)/3;
     return mv_ef_colors;
 }
 
-void mv_ef_set_colors(float *colors)
+void mv_ef_set_colors(unsigned char *colors)
 {
     for (int i = 0; i < 9*3; i++)
         mv_ef_colors[i] = colors[i];
 
-    glUseProgram(font.program);
-    glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, mv_ef_colors);
+    //glUseProgram(font.program);
+    //glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, mv_ef_colors);
 }
 
 //
@@ -179,7 +183,7 @@ void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size)
 //
 // calculates and saves a bunch of useful variables and put them in the global font variable
 // 
-void mv_ef_init(char *filename, int font_size)
+void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filename)
 {
     font.initialized = 1;
 
@@ -189,7 +193,7 @@ void mv_ef_init(char *filename, int font_size)
         strcpy(font.filename, "consola.ttf");
 
     // @TODO: Should probably hard code this eventually, as the shaders are finalized? 2 less files
-    font.program = mv_ef_load_shaders( "vertex_shader_text.vs", "fragment_shader_text.fs" );
+    font.program = mv_ef_load_shaders(vs_filename, fs_filename);
 
     // load .ttf into a bitmap using stb_truetype.h
     font.width = 512;
@@ -323,15 +327,27 @@ void mv_ef_init(char *filename, int font_size)
 
     free(texture_metadata);
 
+    // setup color texture
+    //glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, mv_ef_colors);
+
+    glGenTextures(1, &font.texture_colors);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_1D, font.texture_colors);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, 9, 0, GL_RGB, GL_UNSIGNED_BYTE, mv_ef_colors);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+
     // upload constant uniforms
     glUseProgram(font.program);
     glUniform1i(glGetUniformLocation(font.program, "sampler_font"), 0);
     glUniform1i(glGetUniformLocation(font.program, "sampler_meta"), 1);
+    glUniform1i(glGetUniformLocation(font.program, "sampler_colors"), 2);
 
     glUniform2f(glGetUniformLocation(font.program, "res_bitmap"), font.width, font.height);
     glUniform2f(glGetUniformLocation(font.program, "res_meta"),  NUM_GLYPHS, 2);
+    glUniform1f(glGetUniformLocation(font.program, "num_colors"),  9);
     glUniform1f(glGetUniformLocation(font.program, "offset_firstline"), font.linedist-font.linegap/2.0);
-    glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, mv_ef_colors);
 }
 
 // 
@@ -349,7 +365,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     static float text_glyph_data[4*MAX_STRING_LEN] = {0};
 
     if (font.initialized == 0) {
-        mv_ef_init(NULL, 48.0);
+        mv_ef_init(NULL, 48.0, "vertex_shader_text.vs", "fragment_shader_text.fs");
     }
 
     int len = strlen(str);
@@ -390,7 +406,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     // Backup GL state
     GLint last_program, last_vertex_array; 
-    GLint last_texture0, last_texture1; 
+    GLint last_texture0, last_texture1, last_texture2; 
     GLint last_blend_src, last_blend_dst; 
     GLint last_blend_equation_rgb, last_blend_equation_alpha; 
 
@@ -401,6 +417,8 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture0);
     glActiveTexture(GL_TEXTURE1); 
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture1);
+    glActiveTexture(GL_TEXTURE2); 
+    glGetIntegerv(GL_TEXTURE_BINDING_1D, &last_texture2);
 
     glGetIntegerv(GL_BLEND_SRC, &last_blend_src);
     glGetIntegerv(GL_BLEND_DST, &last_blend_dst);
@@ -421,7 +439,8 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, font.texture_metadata);
-
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_1D, font.texture_colors);
 
     // update bindings
     glBindVertexArray(font.vao);
@@ -433,6 +452,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     // update uniforms
     glUseProgram(font.program);
     glUniform1f(glGetUniformLocation(font.program, "scale_factor"), size/font.font_size);
+    glUniform1f(glGetUniformLocation(font.program, "time"), glfwGetTime());
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
     glUniform2fv(glGetUniformLocation(font.program, "resolution"), 1, res);
 
@@ -446,6 +466,8 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     glBindTexture(GL_TEXTURE_2D, last_texture0);
     glActiveTexture(GL_TEXTURE1); 
     glBindTexture(GL_TEXTURE_2D, last_texture1);
+    glActiveTexture(GL_TEXTURE2); 
+    glBindTexture(GL_TEXTURE_1D, last_texture2);
 
     glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
     glBindVertexArray(last_vertex_array);
@@ -476,6 +498,67 @@ char *mv_ef_read_entire_file(const char *filename) {
     return string;
 }
 
+char vs_source[] = \
+"#version 330 core\n\
+\n\
+layout(location = 0) in vec2 vertexPosition;\n\
+layout(location = 1) in vec4 instanceGlyph;\n\
+\n\
+uniform sampler2D sampler_font;\n\
+uniform sampler2D sampler_meta;\n\
+\n\
+uniform float offset_firstline; // ascent - descent - linegap/2\n\
+uniform float scale_factor;     // scaling factor proportional to font size\n\
+\n\
+uniform vec2 string_offset;     // offset of upper-left corner\n\
+\n\
+uniform vec2 res_meta;   // 96x2 \n\
+uniform vec2 res_bitmap; // 512x256\n\
+uniform vec2 resolution; // screen resolution\n\
+\n\
+out vec2 uv;\n\
+out float color_index; // for syntax highlighting\n\
+\n\
+void main() {\n\
+    vec2 res_meta = textureSize(sampler_meta, 0);\n\
+    vec2 res_bitmap = textureSize(sampler_font, 0);\n\
+\n\
+    // (xoff, yoff, xoff2, yoff2)\n\
+    vec4 q2 = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.75))*vec4(res_bitmap, res_bitmap);\n\
+\n\
+    vec2 p;\n\
+    p = vec2(1.0, -1.0)*(vertexPosition*(q2.zw - q2.xy) + q2.xy);\n\
+    p.y -= offset_firstline;\n\
+    p *= scale_factor;\n\
+    p += instanceGlyph.xy + string_offset;\n\
+    p *= 2.0/resolution;\n\
+    p += vec2(-1.0, 1.0);\n\
+\n\
+    // send the correct uv's in the font atlas to the fragment shader\n\
+    // (x0, y0, x1-x0, y1-y0)\n\
+    vec4 q = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.25));\n\
+    uv = q.xy + vertexPosition*q.zw;\n\
+    color_index = instanceGlyph.w;\n\
+\n\
+    gl_Position = vec4(p, 0.0, 1.0);\n\
+}\n";
+
+char fs_source[] = \
+    "#version 330 core\n\
+    \n\
+    in vec2 uv;\n\
+    in float color_index;\n\
+    uniform sampler2D sampler_font;\n\
+    uniform vec3 colors[9];\n\
+    out vec4 color;\n\
+    \n\
+    void main()\n\
+    {\n\
+        vec3 col = colors[int(color_index+0.5)];\n\
+        float s = texture(sampler_font, uv).r;\n\
+        color = vec4(col, s);\n\
+}\n";
+
 GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_file_path){
     GLint Result = GL_FALSE;
     int InfoLogLength;
@@ -483,7 +566,7 @@ GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_fi
     // Create the Vertex shader
     GLuint VertexShaderID;
     VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
-    char *VertexShaderCode   = mv_ef_read_entire_file(vertex_file_path);
+    char *VertexShaderCode = vertex_file_path ? mv_ef_read_entire_file(vertex_file_path) : vs_source;
 
     // Compile Vertex Shader
     printf("Compiling shader : %s\n", vertex_file_path); fflush(stdout);
@@ -504,12 +587,13 @@ GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_fi
     // Create the Fragment shader
     GLuint FragmentShaderID;
     FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
-    char *FragmentShaderCode = mv_ef_read_entire_file(fragment_file_path);
+    char *FragmentShaderCode = fragment_file_path ? mv_ef_read_entire_file(fragment_file_path) : fs_source;
 
     // Compile Fragment Shader
-    printf("Compiling shader : %s\n", fragment_file_path); fflush(stdout);
+    printf("Compiling shader : %s\n", FragmentShaderCode); fflush(stdout);
     glShaderSource(FragmentShaderID, 1, (const char**)&FragmentShaderCode , NULL);
     glCompileShader(FragmentShaderID);
+
 
     // Check Fragment Shader
     glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
@@ -541,8 +625,8 @@ GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_fi
 
     glDeleteShader(VertexShaderID);
     glDeleteShader(FragmentShaderID);
-    free(FragmentShaderCode);
-    free(VertexShaderCode);
+    if (fragment_file_path) free(FragmentShaderCode);
+    if (vertex_file_path) free(VertexShaderCode);
 
     return ProgramID;
 }

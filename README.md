@@ -35,6 +35,8 @@ The example code uses GLFW and GLAD, but those should not be required, as long a
 
 - ADd functionality to adjust the bitmap texture size based on the font size. currently it's using a 512x256 texture. 
 
+- Look into padding in the bitmap
+
 ### Screenshot:
 ![screenshot](http://i.imgur.com/zSHHVo7.png)
 

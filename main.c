@@ -205,6 +205,20 @@ void color_string(char *str, char *col)
 
         // parse
         
+        // if it's a keyword
+        int is_keyword = 0;
+        for (int j = 0; j < num_keywords; j++) {
+            if (strcmp(tokens[i].start, KEYWORDS[j]) == 0) {
+                is_keyword = 1;
+                break;
+            }
+        }
+        if (is_keyword == 1) {
+            tokens[i].type = TOKEN_KEYWORD;
+            *tokens[i].stop = end_char;
+            continue;
+        } 
+        
         // Check if it's a function
         float f;
         if (end_char == '(') {
@@ -220,19 +234,6 @@ void color_string(char *str, char *col)
             continue;
         } 
 
-        // if it's a keyword
-        int is_keyword = 0;
-        for (int j = 0; j < num_keywords; j++) {
-            if (strcmp(tokens[i].start, KEYWORDS[j]) == 0) {
-                is_keyword = 1;
-                break;
-            }
-        }
-        if (is_keyword == 1) {
-            tokens[i].type = TOKEN_KEYWORD;
-            *tokens[i].stop = end_char;
-            continue;
-        } 
 
         // if it's a variable type
         int is_type = 0;
@@ -311,7 +312,7 @@ int main()
         if (SKIP_DRAWING == 0) {       
             float res[2] = {(float)resx, (float)resy};
             float offset[2] = {0.0, 0.0};
-            float font_size = 16.0;
+            float font_size = 20.0;
 
             int width, height;
             mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
