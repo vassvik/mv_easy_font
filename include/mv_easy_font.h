@@ -380,18 +380,45 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
         ctr++;
     }
 
-    // @Robustness @TODO: Be able to restore blending state afterwards
+
+    // Backup GL state
+    GLint last_program; 
+    GLint last_vertex_array; 
+    GLint last_texture0, last_texture1; 
+    GLint last_blend_src, last_blend_dst; 
+    GLint last_blend_equation_rgb, last_blend_equation_alpha; 
+
+    glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+
+    glActiveTexture(GL_TEXTURE0); 
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture0);
+    glActiveTexture(GL_TEXTURE1); 
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture1);
+
+    glGetIntegerv(GL_BLEND_SRC, &last_blend_src);
+    glGetIntegerv(GL_BLEND_DST, &last_blend_dst);
+    glGetIntegerv(GL_BLEND_EQUATION_RGB, &last_blend_equation_rgb);
+    glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &last_blend_equation_alpha);
+
+    GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+    GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+
+    // Setup render state: alpha-blending enabled, no depth testing and bind textures
     glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // update bindings
-    glBindVertexArray(font.vao);
+    glDisable(GL_DEPTH_TEST);
 
-    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, font.texture_fontdata);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, font.texture_metadata);
+
+
+    // update bindings
+    glBindVertexArray(font.vao);
 
     // actual uploading
     glBindBuffer(GL_ARRAY_BUFFER, font.vbo_instances);
@@ -405,6 +432,21 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 
     // actual drawing
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, ctr);
+
+    // Restore modified GL state
+    glUseProgram(last_program);
+    
+    glActiveTexture(GL_TEXTURE0); 
+    glBindTexture(GL_TEXTURE_2D, last_texture0);
+    glActiveTexture(GL_TEXTURE1); 
+    glBindTexture(GL_TEXTURE_2D, last_texture1);
+
+    glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+    glBindVertexArray(last_vertex_array);
+    glBlendFunc(last_blend_src, last_blend_dst);
+    
+    (last_enable_depth_test ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST));
+    (last_enable_blend ? glEnable(GL_BLEND) : glDisable(GL_BLEND));
 }
 
 
