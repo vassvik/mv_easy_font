@@ -9,9 +9,9 @@ Inspired by `stb_easy_font.h`.
 ### Usage
 Compile the example program with 
 ```bash
-gcc main.c -Iinclude -lglfw
+gcc main.c -Iinclude -lglfw -lm
 ```
-or similar linking options for your OS. Run with:
+or similar linking options for your OS (like -ldl in linux). Run with:
 ```
 ./a.out path/to/font.ttf
 ```
