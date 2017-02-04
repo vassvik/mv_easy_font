@@ -504,6 +504,10 @@ char *mv_ef_read_entire_file(const char *filename) {
     // Read content of "filename" and return it as a c-string.
     printf("Reading %s\n", filename);
     FILE *f = fopen(filename, "rb");
+    if (!f) {
+        printf("Error: Could not load shader file!\n");
+        return NULL;
+    }
 
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
@@ -612,7 +616,7 @@ GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_fi
     char *FragmentShaderCode = fragment_file_path ? mv_ef_read_entire_file(fragment_file_path) : fs_source;
 
     // Compile Fragment Shader
-    printf("Compiling shader : %s\n", FragmentShaderCode); fflush(stdout);
+    printf("Compiling shader : %s\n", fragment_file_path); fflush(stdout);
     glShaderSource(FragmentShaderID, 1, (const char**)&FragmentShaderCode , NULL);
     glCompileShader(FragmentShaderID);
 

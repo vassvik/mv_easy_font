@@ -17,12 +17,17 @@ or similar linking options for your OS (like -ldl in linux). Run with:
 ```
 or omit the file to use `extra/Inconsolata-Regular.ttf`.
 
-To use `mv_easy_font.h` in any running opengl project, `#define MV_EASY_FONT_IMPLEMENTATION` before including `mv_easy_font.h` in one .c/.cpp file, and include `mv_easy_font.h` wherever else needed. Simply call `mv_ef_draw()` with the appropriate parameters to draw text:
+To use `mv_easy_font.h` in any opengl project, `#define MV_EASY_FONT_IMPLEMENTATION` before including `mv_easy_font.h` in one .c/.cpp file, and include `mv_easy_font.h` wherever else needed. Simply call `mv_ef_draw()` with the appropriate parameters to draw text:
 ```C
 mv_ef_draw(str, col, offset, font_size, res);
 ```
+somewhere in the render loop.
 
-If `mv_ef_init(path_to_ttf, font_size, path_to_custom_vertex_shader, path_to_custom_fragment_shader);` is not called manually, `extra/Inconsolata-Regular.ttf` will be used with a font size of 48, and the built in shaders are used. 
+If 
+```C
+mv_ef_init(path_to_ttf, font_size, path_to_custom_vertex_shader, path_to_custom_fragment_shader);
+```
+is not called manually, it will try to look up a default font file using font size 48, and the built in shaders are used. All the three string arguments can be NULL to use default values.
 
 ### Dependencies
 
@@ -38,7 +43,7 @@ The example code uses GLFW and GLAD, but those should not be required, as long a
 
 ### TODO
 
-- ADd functionality to adjust the bitmap texture size based on the font size. currently it's using a 512x256 texture. 
+- ADd functionality to adjust the bitmap texture size based on the font size. currently it's using a hard-coded texture that we hope will fit (and is proably too big). Might not even care, since it doesn't really impact performance...
 
 - Look into padding in the bitmap
 
