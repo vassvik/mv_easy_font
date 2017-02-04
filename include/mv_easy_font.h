@@ -194,7 +194,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     if (filename)
         strcpy(font.filename, filename);
     else
-        strcpy(font.filename, "consola.ttf");
+        strcpy(font.filename, "extra/Inconsolata-Regular.ttf");
 
     // @TODO: Should probably hard code this eventually, as the shaders are finalized? 2 less files
     font.program = mv_ef_load_shaders(vs_filename, fs_filename);
