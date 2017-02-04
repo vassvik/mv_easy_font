@@ -190,10 +190,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 {
     font.initialized = 1;
 
-    if (filename)
-        strcpy(font.filename, filename);
-    else
-        strcpy(font.filename, "extra/Inconsolata-Regular.ttf");
+
 
     // @TODO: Should probably hard code this eventually, as the shaders are finalized? 2 less files
     font.program = mv_ef_load_shaders(vs_filename, fs_filename);
@@ -207,7 +204,34 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     int ttf_size_max = 1e6;
     unsigned char *ttf_buffer = (unsigned char*)malloc(ttf_size_max); // sufficient size for consola.ttf
 
-    FILE *fp = fopen(font.filename, "rb");
+    unsigned char *ttf_filenames[] = {
+        "extra/Inconsolata-Regular.ttf",
+        "Inconsolata-Regular.ttf",
+        "C:/Windows/Fonts/consola.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",
+    };
+
+    FILE *fp;
+    if (fp = fopen(font.filename, "rb")) {
+        strcpy(font.filename, filename);
+    } else {
+        int found = 0;
+        for (int i = 0; i < 4; i++) {
+            if (fp = fopen(ttf_filenames[i], "rb")) {
+                strcpy(font.filename, ttf_filenames[i]);
+                found = 1;
+                break;
+            }
+        }
+
+        if (!found) {
+            printf("I fucking give up. Can't find a valid .ttf file. Exiting.\n");
+            exit(-9);
+        }
+    }
+
+    printf("Using font file: \"%s\"\n", font.filename);
+
     fread(ttf_buffer, 1, ttf_size_max, fp);
     fclose(fp);
     

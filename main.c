@@ -76,7 +76,6 @@ void color_string(char *str, char *col)
     Token tokens[9999]; // hurr
     int num_tokens = 0; // running counter
 
-
     char *ptr = str;
     while (*ptr) {
         // skip delimiters
@@ -92,7 +91,6 @@ void color_string(char *str, char *col)
             ptr++;
             continue;
         }
-
 
         // found a token!
         char *start = ptr;
