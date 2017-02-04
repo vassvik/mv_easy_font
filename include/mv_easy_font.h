@@ -455,7 +455,6 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     // update uniforms
     glUseProgram(font.program);
     glUniform1f(glGetUniformLocation(font.program, "scale_factor"), size/font.font_size);
-    glUniform1f(glGetUniformLocation(font.program, "time"), glfwGetTime());
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
     glUniform2fv(glGetUniformLocation(font.program, "resolution"), 1, res);
 
@@ -555,13 +554,11 @@ uniform sampler2D sampler_font;\n\
 uniform sampler1D sampler_colors;\n\
 uniform float num_colors;\n\
 \n\
-uniform float time;\n\
-\n\
 out vec4 color;\n\
 \n\
 void main()\n\
 {\n\
-    vec3 col = texture(sampler_colors, (color_index+0.5 + time)/num_colors).rgb;\n\
+    vec3 col = texture(sampler_colors, (color_index+0.5)/num_colors).rgb;\n\
     float s = texture(sampler_font, uv).r;\n\
     color = vec4(col, s);\n\
 }\n";
