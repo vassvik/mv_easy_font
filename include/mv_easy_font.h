@@ -101,9 +101,10 @@ mv_ef_font *mv_ef_get_font();
 
 #endif // MV_EF_OUTPUT_BITMAP_TO_FILE
 
+#define mv_ef_num_colors 256
 
-// @TODO: Add larger color palette. currently only support 9 colors
-unsigned char mv_ef_colors[9*3] = {
+// @TODO: Add larger color palette. currently only 9 colors are filled in
+unsigned char mv_ef_colors[mv_ef_num_colors*3] = {
     248, 248, 242, // foreground color
     249,  38, 114, // operator
     174, 129, 255, // numeric
@@ -115,7 +116,8 @@ unsigned char mv_ef_colors[9*3] = {
      39,  40,  34  // clear color
 };
 
-// private global variable that all the functions use. return with 
+
+// private global variable that all the functions use.
 mv_ef_font font = {0};
 
 //
@@ -128,21 +130,18 @@ mv_ef_font *mv_ef_get_font()
 
 unsigned char *mv_ef_get_colors(int *num_colors)
 {
-    *num_colors = sizeof(mv_ef_colors)/3;
+    *num_colors = mv_ef_num_colors;
     return mv_ef_colors;
 }
 
 void mv_ef_set_colors(unsigned char *colors)
 {
-    for (int i = 0; i < 9*3; i++)
+    for (int i = 0; i < mv_ef_num_colors*3; i++)
         mv_ef_colors[i] = colors[i];
 
-    int num_colors = sizeof(mv_ef_colors)/3;
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_1D, font.texture_colors);
-    glTexSubImage1D(GL_TEXTURE_1D, 0, 0, num_colors, GL_RGB, GL_UNSIGNED_BYTE, mv_ef_colors);
-    //glUseProgram(font.program);
-    //glUniform3fv(glGetUniformLocation(font.program, "colors"), 9, mv_ef_colors);
+    glTexSubImage1D(GL_TEXTURE_1D, 0, 0, mv_ef_num_colors, GL_RGB, GL_UNSIGNED_BYTE, mv_ef_colors);
 }
 
 //
@@ -336,7 +335,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     glGenTextures(1, &font.texture_colors);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_1D, font.texture_colors);
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, 9, 0, GL_RGB, GL_UNSIGNED_BYTE, mv_ef_colors);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB, mv_ef_num_colors, 0, GL_RGB, GL_UNSIGNED_BYTE, mv_ef_colors);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -349,7 +348,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 
     glUniform2f(glGetUniformLocation(font.program, "res_bitmap"), font.width, font.height);
     glUniform2f(glGetUniformLocation(font.program, "res_meta"),  NUM_GLYPHS, 2);
-    glUniform1f(glGetUniformLocation(font.program, "num_colors"),  9);
+    glUniform1f(glGetUniformLocation(font.program, "num_colors"),  mv_ef_num_colors);
     glUniform1f(glGetUniformLocation(font.program, "offset_firstline"), font.linedist-font.linegap/2.0);
 }
 
@@ -405,7 +404,6 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
         X += font.cdata[code_base].xadvance;
         ctr++;
     }
-
 
     // Backup GL state
     GLint last_program, last_vertex_array; 
@@ -480,8 +478,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
 }
 
 
-//
-
+// shader loading routines
 char *mv_ef_read_entire_file(const char *filename) {
     // Read content of "filename" and return it as a c-string.
     printf("Reading %s\n", filename);
