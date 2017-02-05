@@ -57,7 +57,7 @@ typedef struct {
 } mv_ef_font;
 
 void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filename);
-void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2]);
+void mv_ef_draw(char *str, char *col, float offset[2], float size);
 void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size);
 void mv_ef_set_colors(unsigned char *colors);
 unsigned char *mv_ef_get_colors(int *num_colors);
@@ -356,7 +356,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 //
 // finally draws
 // 
-void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2]) 
+void mv_ef_draw(char *str, char *col, float offset[2], float size) 
 {
     static float text_glyph_data[4*MAX_STRING_LEN] = {0};
 
@@ -448,7 +448,10 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     glUseProgram(font.program);
     glUniform1f(glGetUniformLocation(font.program, "scale_factor"), size/font.font_size);
     glUniform2fv(glGetUniformLocation(font.program, "string_offset"), 1, offset);
-    glUniform2fv(glGetUniformLocation(font.program, "resolution"), 1, res);
+    
+    GLint dims[4] = {0};
+    glGetIntegerv(GL_VIEWPORT, dims);
+    glUniform2f(glGetUniformLocation(font.program, "resolution"), dims[2], dims[3]);
 
     double t4 = glfwGetTime();
 

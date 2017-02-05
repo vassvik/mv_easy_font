@@ -275,14 +275,13 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         if (SKIP_DRAWING == 0) {       
-            float res[2] = {(float)resx, (float)resy};
             float offset[2] = {0.0, 0.0};
             
             float font_size = 23.0;
 
             int width, height;
             mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
-            mv_ef_draw(fragment_source, col, offset, font_size, res);
+            mv_ef_draw(fragment_source, col, offset, font_size);
             
             /*
             float font_size = 8.0;
@@ -299,7 +298,7 @@ int main(int argc, char *argv[])
                 str[j*nx + nx-1] = '\n';
             }
 
-            mv_ef_draw(str, NULL, offset, font_size, res);
+            mv_ef_draw(str, NULL, offset, font_size);
             */
         }
 
