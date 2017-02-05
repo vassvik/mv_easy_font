@@ -277,14 +277,14 @@ int main(int argc, char *argv[])
         if (SKIP_DRAWING == 0) {       
             float res[2] = {(float)resx, (float)resy};
             float offset[2] = {0.0, 0.0};
-            /*
+            
             float font_size = 23.0;
 
             int width, height;
             mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
             mv_ef_draw(fragment_source, col, offset, font_size, res);
-            */
             
+            /*
             float font_size = 8.0;
             char str[MAX_STRING_LEN] = {0};
             
@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
             }
 
             mv_ef_draw(str, NULL, offset, font_size, res);
-            
+            */
         }
 
         glfwSwapBuffers(window);
