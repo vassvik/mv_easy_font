@@ -8,8 +8,6 @@ extern "C" {
 char *mv_ef_read_entire_file(const char *filename);
 GLuint mv_ef_load_shaders(const char *vs_path, const char *fs_path);
 
-#include "stb_truetype.h"
-
 #define MAX_STRING_LEN 40000 // more glyphs than any reasonable person would show on the screen at once. you can only fit 20736 10x10 rects in a 1920x1080 window
 #define NUM_GLYPHS 96
 
@@ -72,34 +70,8 @@ mv_ef_font *mv_ef_get_font();
 #endif // MV_EASY_FONT_H
 
 
-#ifdef MV_EASY_FONT_IMPLEMENTATION
+#if defined(MV_EASY_FONT_IMPLEMENTATION) && defined(STB_TRUETYPE_IMPLEMENTATION)
 
-
-// include stb_truetype.h implementation. make sure to check if it hasn't been implemented before
-#ifndef STB_TRUETYPE_IMPLEMENTATION
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
-#endif // STB_TRUETYPE_IMPLEMENTATION
-
-// include stb_rect_pack.h implementation if requested. make sure to check if it hasn't been implemented before
-#ifdef STB_INCLUDE_STB_RECT_PACK_H
-
-#ifndef STB_RECT_PACK_IMPLEMENTATION
-#define STB_RECT_PACK_IMPLEMENTATION
-#include "stb_rect_pack.h"
-#endif // STB_RECT_PACK_IMPLEMENTATION
-
-#endif // STB_INCLUDE_STB_RECT_PACK_H
-
-// include stb_image_write.h implementation if saving bitmap is requested. make sure to check if it hasn't been implemented before
-#ifdef MV_EF_OUTPUT_BITMAP_TO_FILE
-
-#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#endif // STB_IMAGE_WRITE_IMPLEMENTATION
-
-#endif // MV_EF_OUTPUT_BITMAP_TO_FILE
 
 #define mv_ef_num_colors 256
 
@@ -201,15 +173,16 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     int ttf_size_max = 1e6;
     unsigned char *ttf_buffer = (unsigned char*)malloc(ttf_size_max); // sufficient size for consola.ttf
 
-    unsigned char *ttf_filenames[] = {
+    char *ttf_filenames[] = {
         "extra/Inconsolata-Regular.ttf",
         "Inconsolata-Regular.ttf",
         "C:/Windows/Fonts/consola.ttf",
         "/usr/share/fonts/dejavu/DejaVuSansMono.ttf",
     };
 
+
     FILE *fp;
-    if (fp = fopen(font.filename, "rb")) {
+    if (fp = fopen(filename, "rb")) {
         strcpy(font.filename, filename);
     } else {
         int found = 0;
@@ -240,7 +213,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     stbtt_PackFontRange(&pc, ttf_buffer, 0, font.font_size, 32, 96, font.cdata);
     stbtt_PackEnd(&pc);
 
-#ifdef MV_EF_OUTPUT_BITMAP_TO_FILE
+#ifdef STB_IMAGE_WRITE_IMPLEMENTATION
     stbi_write_png("font.png", font.width, font.height, 1, bitmap, 0);
 #endif
 
@@ -401,30 +374,32 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     // parse string, convert to vbo data
     float X = 0.0;
     float Y = 0.0;
+    float l = font.linedist*size/font.font_size;
 
-    int ctr = 0;
-    for (int i = 0; i < len; i++) {
+    float advances[96];
+    for (int i = 0; i < 96; i++)
+        advances[i] = font.cdata[i].xadvance*size/font.font_size;
 
-        if (str[i] == '\n') {
+    float *t = text_glyph_data;
+    for (char *c = str; *c; c++) {
+
+        if ((*c) == '\n') {
             X = 0.0;
-            Y -= (font.linedist);
+            Y -= l;
             continue;
         }
 
-        int code_base = str[i]-32; // first glyph is ' ', i.e. ascii code 32
+        int code_base = (*c)-32; // first glyph is ' ', i.e. ascii code 32
+        float dx = advances[code_base];
 
-        float x1 = X*size/font.font_size;
-        float y1 = Y*size/font.font_size;
+        *t++ = X;
+        *t++ = Y;
+        *t++ = code_base;
+        *t++ = col ? col[c-str] : 0;
 
-        int ctr1 = 4*ctr;
-        text_glyph_data[ctr1++] = x1;
-        text_glyph_data[ctr1++] = y1;
-        text_glyph_data[ctr1++] = code_base;
-        text_glyph_data[ctr1++] = col ? col[i] : 0;
-
-        X += font.cdata[code_base].xadvance;
-        ctr++;
-    }  
+        X += dx;
+    }
+    int ctr = (t - text_glyph_data)/4;
     double t2 = glfwGetTime();
 
     // Backup GL state
@@ -514,6 +489,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     static double time_restore = 0.0;
 
     static int num = 0;
+    static long long int num_total = 0;
 
     time_parse += t2-t1;
     time_save += t3-t2;
@@ -522,6 +498,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
     time_draw += t6-t5;
     time_restore += t7-t6;
     num++;
+    num_total++;
 
     if (num % 10000 == 0) {
         double total = time_parse + time_save + time_set + time_upload  + time_draw + time_restore;
@@ -532,6 +509,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size, float res[2])
         printf("time upload  %6.1fus (%.2f%%)\n", 1e6*time_upload/num, 100.0*time_upload/total);
         printf("time draw    %6.1fus (%.2f%%)\n", 1e6*time_draw/num, 100.0*time_draw/total);
         printf("time restore %6.1fus (%.2f%%)\n", 1e6*time_restore/num, 100.0*time_restore/total);
+        printf("total %lld frames\n", num_total);
         printf("\n");
 
         time_parse = 0.0;
@@ -707,4 +685,4 @@ GLuint mv_ef_load_shaders(const char * vertex_file_path,const char * fragment_fi
 }
 
 
-#endif // MV_EASY_FONT_IMPLEMENTATION
+#endif // defined(MV_EASY_FONT_IMPLEMENTATION) && defined(STB_TRUETYPE_IMPLEMENTATION)

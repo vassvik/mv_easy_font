@@ -7,13 +7,8 @@
 #include <glad/glad.c>
 #include <GLFW/glfw3.h>
 
-// incldue stb_rect_pack.h to use effective packing
-// #include "stb_rect_pack.h"
-
-// define MV_EF_OUTPUT_BITMAP_TO_FILE to save the generated bitmap to "font.png". Requires stb_image_write.h.
-#define MV_EF_OUTPUT_BITMAP_TO_FILE
+#include "stb_truetype.h" 
 #include "mv_easy_font.h"
-
 
 /*
     Uniform random numbers between 0.0 (inclusive) and 1.0 (exclusive)
@@ -233,7 +228,6 @@ void color_string(char *str, char *col)
             continue;
         } 
 
-
         // if it's a variable type
         int is_type = 0;
         for (int j = 0; j < num_types; j++) {
@@ -283,12 +277,30 @@ int main(int argc, char *argv[])
         if (SKIP_DRAWING == 0) {       
             float res[2] = {(float)resx, (float)resy};
             float offset[2] = {0.0, 0.0};
-            float font_size = 20.0;
+            /*
+            float font_size = 23.0;
 
             int width, height;
             mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
-
             mv_ef_draw(fragment_source, col, offset, font_size, res);
+            */
+            
+            float font_size = 8.0;
+            char str[MAX_STRING_LEN] = {0};
+            
+            int i = 0;
+            int ny = 106;
+            int nx = 363;
+            for (int j = 0; j < ny; j++) {
+                for (int i = 0; i < nx-1; i++) {
+                    int k = j*nx + i;
+                    str[k] = 32 + 96*rng();
+                }
+                str[j*nx + nx-1] = '\n';
+            }
+
+            mv_ef_draw(str, NULL, offset, font_size, res);
+            
         }
 
         glfwSwapBuffers(window);
@@ -469,6 +481,17 @@ void mousewheel_callback(GLFWwindow* win, double xoffset, double yoffset) {
     glfwGetCursorPos(win, &prevx, &prevy);
 }
 
+
+//for efficent rectangle packing of bitmap font atlas
+//#define STB_RECT_PACK_IMPLEMENTATION
+//#include "stb_rect_pack.h"
+
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+//for generating a font.png for the bitmap font atlas
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#include "stb_image_write.h"
 
 #define MV_EASY_FONT_IMPLEMENTATION
 #include "mv_easy_font.h"
