@@ -173,7 +173,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     int ttf_size_max = 1e6;
     unsigned char *ttf_buffer = (unsigned char*)malloc(ttf_size_max); // sufficient size for consola.ttf
 
-    char *ttf_filenames[] = {
+    const char *ttf_filenames[] = {
         "extra/Inconsolata-Regular.ttf",
         "Inconsolata-Regular.ttf",
         "C:/Windows/Fonts/consola.ttf",
@@ -182,12 +182,12 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 
 
     FILE *fp;
-    if (fp = fopen(filename, "rb")) {
+    if ((fp = fopen(filename, "rb"))) {
         strcpy(font.filename, filename);
     } else {
         int found = 0;
         for (int i = 0; i < 4; i++) {
-            if (fp = fopen(ttf_filenames[i], "rb")) {
+            if ((fp = fopen(ttf_filenames[i], "rb"))) {
                 strcpy(font.filename, ttf_filenames[i]);
                 found = 1;
                 break;
@@ -195,7 +195,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
         }
 
         if (!found) {
-            printf("I fucking give up. Can't find a valid .ttf file. Exiting.\n");
+            printf("I give up. Can't find a valid .ttf file. Exiting.\n");
             exit(-9);
         }
     }
