@@ -59,6 +59,7 @@ typedef struct Token
 } Token;
 
 
+// syntax highlighter
 void color_string(char *str, char *col)
 {
     // ignored characters
@@ -267,7 +268,7 @@ int main(int argc, char *argv[])
     char *col = (char*)calloc(strlen(fragment_source), 1);
     color_string(fragment_source, col); // syntax highlighting
 
-    glfwSwapInterval(0);
+    glfwSwapInterval(1);
     while ( !glfwWindowShouldClose(window)) {
         frame_timer();
 
@@ -276,10 +277,9 @@ int main(int argc, char *argv[])
         
         if (SKIP_DRAWING == 0) {       
             float offset[2] = {0.0, 0.0};
-            
-            float font_size = 23.0;
+            float font_size = 18.0;
 
-            int width, height;
+            float width, height;
             mv_ef_string_dimensions(fragment_source, &width, &height, font_size); // for potential alignment
             mv_ef_draw(fragment_source, col, offset, font_size);
             
@@ -383,7 +383,7 @@ void init_GL()
     glfwSetWindowSizeCallback(window, windowsize_callback);
 
     glfwSwapInterval(0);
-    glClearColor(39/255.0,  40/255.0,  34/255.0, 1.0f);
+    glClearColor(39/255.0, 40/255.0, 34/255.0, 1.0);
 }
 
 // Callback function called every time the window size change

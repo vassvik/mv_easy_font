@@ -1,4 +1,4 @@
-#version 330 core
+#version 330 core // ()
 
 layout(location = 0) in vec2 vertexPosition;
 layout(location = 1) in vec4 instanceGlyph;
@@ -17,7 +17,8 @@ uniform vec2 resolution; // screen resolution
 out vec2 uv;
 out float color_index; // for syntax highlighting
 
-void main(){
+void main()
+{
     // (xoff, yoff, xoff2, yoff2), from second row of texture
     vec4 q2 = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.75))*vec4(res_bitmap, res_bitmap);
     

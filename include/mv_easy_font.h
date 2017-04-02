@@ -58,7 +58,7 @@ typedef struct {
 
 void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filename);
 void mv_ef_draw(char *str, char *col, float offset[2], float size);
-void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size);
+void mv_ef_string_dimensions(char *str, float *width, float *height, int font_size);
 void mv_ef_set_colors(unsigned char *colors);
 unsigned char *mv_ef_get_colors(int *num_colors);
 mv_ef_font *mv_ef_get_font();
@@ -120,10 +120,10 @@ void mv_ef_set_colors(unsigned char *colors)
 // Calculates the size of a string, in the pixel size specified. 
 // Note: Stray newlines are also counted
 //
-void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size)
+void mv_ef_string_dimensions(char *str, float *width, float *height, int font_size)
 {
-    int X = 0;
-    int Y = 0;
+    float X = 0;
+    float Y = 0;
 
     int W = 0;
     char *ptr = str;
@@ -143,6 +143,9 @@ void mv_ef_string_dimensions(char *str, int *width, int *height, int font_size)
     if (X != 0) {
         Y++;
         if (W == 0)
+            W = X;
+
+        if (X > W)
             W = X;
     } 
 
@@ -280,7 +283,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1,4,GL_FLOAT,GL_FALSE,0,(void*)0);
     glVertexAttribDivisor(1, 1);
-
+    //glEnable(GL_FRAMEBUFFER_SRGB); 
     // setup and upload font bitmap texture
     glGenTextures(1, &font.texture_fontdata);
     glActiveTexture(GL_TEXTURE0);
@@ -343,7 +346,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
     glUniform2f(glGetUniformLocation(font.program, "res_bitmap"), font.width, font.height);
     glUniform2f(glGetUniformLocation(font.program, "res_meta"),  NUM_GLYPHS, 2);
     glUniform1f(glGetUniformLocation(font.program, "num_colors"),  mv_ef_num_colors);
-    glUniform1f(glGetUniformLocation(font.program, "offset_firstline"), font.linedist-font.linegap/2.0);
+    glUniform1f(glGetUniformLocation(font.program, "offset_firstline"), font.linedist-font.linegap);
 }
 
 // 
@@ -370,7 +373,7 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size)
         printf("Error: string too long. Returning\n");
         return;
     } 
-    double t1 = glfwGetTime();
+
     // parse string, convert to vbo data
     float X = 0.0;
     float Y = 0.0;
@@ -400,7 +403,6 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size)
         X += dx;
     }
     int ctr = (t - text_glyph_data)/4;
-    double t2 = glfwGetTime();
 
     // Backup GL state
     GLint last_program, last_vertex_array; 
@@ -425,7 +427,6 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size)
 
     GLboolean last_enable_blend      = glIsEnabled(GL_BLEND);
     GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
-    double t3 = glfwGetTime();
 
     // Setup render state: alpha-blending enabled, no depth testing and bind textures
     glEnable(GL_BLEND);
@@ -453,17 +454,14 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size)
     glGetIntegerv(GL_VIEWPORT, dims);
     glUniform2f(glGetUniformLocation(font.program, "resolution"), dims[2], dims[3]);
 
-    double t4 = glfwGetTime();
 
     // actual uploading
     glBindBuffer(GL_ARRAY_BUFFER, font.vbo_instances);
     glBufferSubData(GL_ARRAY_BUFFER, 0, 4*4*ctr, text_glyph_data);
 
 
-    double t5 = glfwGetTime();
     // actual drawing
     glDrawArraysInstanced(GL_TRIANGLES, 0, 6, ctr);
-    double t6 = glfwGetTime();
 
     // Restore modified GL state
     glUseProgram(last_program);
@@ -481,51 +479,6 @@ void mv_ef_draw(char *str, char *col, float offset[2], float size)
     
     (last_enable_depth_test ? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST));
     (last_enable_blend ? glEnable(GL_BLEND) : glDisable(GL_BLEND));
-    double t7 = glfwGetTime();
-
-
-    static double time_parse = 0.0;
-    static double time_save = 0.0;
-    static double time_set = 0.0;
-    static double time_upload = 0.0;
-    static double time_draw = 0.0;
-    static double time_restore = 0.0;
-
-    static int num = 0;
-    static long long int num_total = 0;
-
-    time_parse += t2-t1;
-    time_save += t3-t2;
-    time_set += t4-t3;
-    time_upload += t5-t4;
-    time_draw += t6-t5;
-    time_restore += t7-t6;
-    num++;
-    num_total++;
-
-    if (num % 10000 == 0) {
-        double total = time_parse + time_save + time_set + time_upload  + time_draw + time_restore;
-
-        printf("time parse   %6.1fus (%.2f%%)\n", 1e6*time_parse/num, 100.0*time_parse/total);
-        printf("time save    %6.1fus (%.2f%%)\n", 1e6*time_save/num, 100.0*time_save/total);
-        printf("time set     %6.1fus (%.2f%%)\n", 1e6*time_set/num, 100.0*time_set/total);
-        printf("time upload  %6.1fus (%.2f%%)\n", 1e6*time_upload/num, 100.0*time_upload/total);
-        printf("time draw    %6.1fus (%.2f%%)\n", 1e6*time_draw/num, 100.0*time_draw/total);
-        printf("time restore %6.1fus (%.2f%%)\n", 1e6*time_restore/num, 100.0*time_restore/total);
-        printf("total %lld frames\n", num_total);
-        printf("\n");
-
-        time_parse = 0.0;
-        time_save = 0.0;
-        time_set = 0.0;
-        time_upload = 0.0;
-        time_draw = 0.0;
-        time_restore = 0.0; 
-        num = 0;
-
-        fflush(stdout);
-    }
-
 }
 
 
@@ -574,7 +527,8 @@ uniform vec2 resolution; // screen resolution\n\
 out vec2 uv;\n\
 out float color_index; // for syntax highlighting\n\
 \n\
-void main() {\n\
+void main()\n\
+{\n\
     // (xoff, yoff, xoff2, yoff2), from second row of texture\n\
     vec4 q2 = texture(sampler_meta, vec2((instanceGlyph.z + 0.5)/res_meta.x, 0.75))*vec4(res_bitmap, res_bitmap);\n\
 \n\
