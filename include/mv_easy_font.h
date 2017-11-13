@@ -185,7 +185,7 @@ void mv_ef_init(char *filename, int font_size, char *vs_filename, char *fs_filen
 
 
     FILE *fp;
-    if ((fp = fopen(filename, "rb"))) {
+    if (filename && (fp = fopen(filename, "rb"))) {
         strcpy(font.filename, filename);
     } else {
         int found = 0;
